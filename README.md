@@ -2,7 +2,7 @@
 
 Get events from the FlicHub when a Flic Button is clicked.
 
-To be able to use this client you need to enable the FLic Hub SDK described on [this](https://flic.io/flic-hub-sdk) page.
+To be able to use this client you need to enable the Flic Hub SDK described on [this](https://flic.io/flic-hub-sdk) page.
 
 Create a new module and name it to whatever you want and paste the code found in `tcpserver.js` in the editor and press play.
 

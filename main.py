@@ -9,7 +9,7 @@ from pyflichub.event import Event
 logging.basicConfig(level=logging.DEBUG)
 
 CLIENT_READY_TIMEOUT = 20.0
-HOST = ('192.168.1.249', 8123)
+HOST = ('192.168.1.249', 8124)
 LOOP = asyncio.get_event_loop()
 
 
@@ -46,7 +46,6 @@ async def start():
     for button in buttons:
         print(f"Button name: {button.name} - Connected: {button.connected}")
 
-    buttons = await client.get_buttons()
     for button in buttons:
         print(f"Button name: {button.name} - Battery: {await client.get_battery_status(button.bdaddr)}")
 

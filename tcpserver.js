@@ -4,7 +4,7 @@ var net = require('net');
 var buttons = require('buttons');
 
 // Configuration - start
-var PORT = 8123;
+var PORT = 8124;
 // Configuration - end
 
 net.createServer(function (socket) {
