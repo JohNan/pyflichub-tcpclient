@@ -142,8 +142,8 @@ class FlicHubTcpClient(asyncio.Protocol):
             button = self._get_button(event.button)
             _LOGGER.debug(f"Button {button.name} was {event.action}")
 
-        if self._event_callback is not None:
-            self._event_callback(event)
+            if self._event_callback is not None:
+                self._event_callback(button, event)
 
     def _get_button(self, bdaddr: str) -> FlicButton:
         return next((x for x in self.buttons if x.bdaddr == bdaddr), None)
