@@ -2,6 +2,7 @@ import asyncio
 import async_timeout
 import logging
 
+from pyflichub.button import FlicButton
 from pyflichub.client import FlicHubTcpClient
 from pyflichub.command import Command
 from pyflichub.event import Event
@@ -9,11 +10,11 @@ from pyflichub.event import Event
 logging.basicConfig(level=logging.DEBUG)
 
 CLIENT_READY_TIMEOUT = 20.0
-HOST = ('192.168.1.249', 8124)
+HOST = ('192.168.1.64', 8124)
 LOOP = asyncio.get_event_loop()
 
 
-def event_callback(event: Event):
+def event_callback(button: FlicButton, event: Event):
     print(f"Received event: {event.event}")
 
 
@@ -46,8 +47,8 @@ async def start():
     for button in buttons:
         print(f"Button name: {button.name} - Connected: {button.connected}")
 
-    for button in buttons:
-        print(f"Button name: {button.name} - Battery: {await client.get_battery_status(button.bdaddr)}")
+    # for button in buttons:
+    #     print(f"Button name: {button.name} - Battery: {await client.get_battery_status(button.bdaddr)}")
 
 
 if __name__ == '__main__':

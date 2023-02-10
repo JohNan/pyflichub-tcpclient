@@ -4,10 +4,13 @@ var net = require('net');
 var buttons = require('buttons');
 
 // Configuration - start
-var PORT = 8124;
+const PORT = 8124;
+const EVENT_BUTTON = "button";
 // Configuration - end
 
 net.createServer(function (socket) {
+    var refreshIntervalId = null;
+
     console.log("Connection from " + socket.remoteAddress);
 
     var buttonConnectedHandler = function (button) {
@@ -44,7 +47,7 @@ net.createServer(function (socket) {
     var buttonDownHandler = function (button) {
         console.log('Button clicked:' + button.bdaddr + ' - down')
         var response = {
-            'event': 'buttonDown',
+            'event': EVENT_BUTTON,
             'button': button.bdaddr,
             'action': 'down'
         }
@@ -54,7 +57,7 @@ net.createServer(function (socket) {
     var buttonUpHandler = function (button) {
         console.log('Button clicked:' + button.bdaddr + ' - up')
         var response = {
-            'event': 'buttonUp',
+            'event': EVENT_BUTTON,
             'button': button.bdaddr,
             'action': 'up'
         }
@@ -62,20 +65,27 @@ net.createServer(function (socket) {
     };
 
     var buttonSingleOrDoubleClickOrHoldHandler = function (button) {
-        var action = ''
-        if (button.isSingleClick) action = 'single'
-        if (button.isDoubleClick) action = 'double'
-        if (button.isHold) action = 'hold'
-
+        const action = button.isSingleClick ? 'single' : button.isDoubleClick ? 'double' : 'hold';
         console.log('Button clicked:' + button.bdaddr + ' - ' + action)
-
-        var response = {
-            'event': 'buttonSingleOrDoubleClickOrHold',
+        const response = {
+            'event': EVENT_BUTTON,
             'button': button.bdaddr,
             'action': action
-        }
+        };
         socket.write(JSON.stringify(response))
     };
+
+    function sendButtons() {
+        const _buttons = buttons.getButtons();
+        console.log(JSON.stringify(_buttons))
+
+        const response = {
+            'command': 'buttons',
+            'data': _buttons
+        };
+
+        socket.write(JSON.stringify(response))
+    }
 
     buttons.on('buttonSingleOrDoubleClickOrHold', buttonSingleOrDoubleClickOrHoldHandler);
     buttons.on('buttonUp', buttonUpHandler);
@@ -85,43 +95,45 @@ net.createServer(function (socket) {
     buttons.on('buttonAdded', buttonAddedHandler);
 
     socket.setEncoding();
+
     socket.on('end', function () {
         console.log('Client disconnected: ' + socket.remoteAddress);
 
-        buttons.removeListener('buttonUp', buttonUpHandler)
-        buttons.removeListener('buttonDown', buttonDownHandler)
-        buttons.removeListener('buttonSingleOrDoubleClickOrHold', buttonSingleOrDoubleClickOrHoldHandler)
-        buttons.removeListener('buttonConnected', buttonConnectedHandler)
-        buttons.removeListener('buttonReady', buttonReadyHandler)
-        buttons.removeListener('buttonAdded', buttonAddedHandler)
+        buttons.removeListener('buttonUp', buttonUpHandler);
+        buttons.removeListener('buttonDown', buttonDownHandler);
+        buttons.removeListener('buttonSingleOrDoubleClickOrHold', buttonSingleOrDoubleClickOrHoldHandler);
+        buttons.removeListener('buttonConnected', buttonConnectedHandler);
+        buttons.removeListener('buttonReady', buttonReadyHandler);
+        buttons.removeListener('buttonAdded', buttonAddedHandler);
 
+        clearInterval(refreshIntervalId);
         socket.destroy();
     });
 
     socket.on('data', function (data) {
-        var msg = data.trim()
+        const msg = data.trim()
         console.log("Received message: " + msg)
 
         if (msg.startsWith("battery;")) {
-            var _bdaddr = msg.split(";")[1];
-            var button = buttons.getButton(_bdaddr)
+            const _bdaddr = msg.split(";")[1];
+            const button = buttons.getButton(_bdaddr)
 
-            var response = {
+            const response = {
                 'command': 'battery',
                 'data': button.batteryStatus
-            }
+            };
 
             socket.write(JSON.stringify(response))
         }
 
         if (msg === "buttons") {
-            var _buttons = buttons.getButtons()
+            const _buttons = buttons.getButtons();
             console.log(JSON.stringify(_buttons))
 
-            var response = {
+            const response = {
                 'command': 'buttons',
                 'data': _buttons
-            }
+            };
 
             socket.write(JSON.stringify(response))
         }
@@ -131,6 +143,8 @@ net.createServer(function (socket) {
         }
     });
 
+    // Send current buttons every 10 seconds
+    refreshIntervalId = setInterval(sendButtons, 10000);
 }).listen(PORT, function () {
     console.log("Opened server on port: " + PORT);
 });

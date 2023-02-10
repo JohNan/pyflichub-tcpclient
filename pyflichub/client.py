@@ -29,7 +29,7 @@ def wrap(func):
 
 
 class FlicHubTcpClient(asyncio.Protocol):
-    buttons: [FlicButton]
+    buttons: [FlicButton] = []
 
     def __init__(self, ip, port, loop, timeout=1.0, reconnect_timeout=10.0, event_callback=None, command_callback=None):
         self._data_ready: Union[asyncio.Event, None] = None
@@ -106,12 +106,13 @@ class FlicHubTcpClient(asyncio.Protocol):
             self.on_connected()
 
     def data_received(self, data):
-        _LOGGER.debug('Data received: {!r}'.format(data.decode()))
+        decoded_data = data.decode()
+        _LOGGER.debug('Data received: {!r}'.format(decoded_data))
 
-        if data.decode() == 'pong':
+        if decoded_data == 'pong':
             return
 
-        msg = json.loads(data.decode())
+        msg = json.loads(decoded_data)
         if 'event' in msg:
             self._handle_event(Event(**msg))
         if 'command' in msg:
@@ -126,7 +127,7 @@ class FlicHubTcpClient(asyncio.Protocol):
         command_data = cmd.data
         if cmd.command == 'buttons':
             self.buttons = [FlicButton(**button) for button in humps.decamelize(cmd.data)]
-            command_data = self.buttons
+            command_data = cmd.data = self.buttons
             for button in self.buttons:
                 _LOGGER.debug(f"Button name: {button.name} - Connected: {button.connected}")
 
@@ -138,12 +139,13 @@ class FlicHubTcpClient(asyncio.Protocol):
             self._command_callback(cmd)
 
     def _handle_event(self, event: Event):
+        button = None
         if event.event == 'button':
             button = self._get_button(event.button)
             _LOGGER.debug(f"Button {button.name} was {event.action}")
 
-            if self._event_callback is not None:
-                self._event_callback(button, event)
+        if self._event_callback is not None and button is not None:
+            self._event_callback(button, event)
 
     def _get_button(self, bdaddr: str) -> FlicButton:
         return next((x for x in self.buttons if x.bdaddr == bdaddr), None)
