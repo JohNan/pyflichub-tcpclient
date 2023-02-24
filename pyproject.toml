@@ -1,0 +1,24 @@
+[build-system]
+requires = [
+    "setuptools>=65",
+    "wheel>=0.37.0",
+    "setuptools_scm>=6.0",
+]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools_scm]
+fallback_version = "0.0.0"
+write_to = "pyflichub/version.py"
+
+[tool.black]
+line-length = 120
+target-version = ['py37', 'py38', 'py39', 'py310']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # The following are specific to Black, you probably don't want those.
+  | blib2to3
+  | tests/data
+  | profiling
+)/
+'''

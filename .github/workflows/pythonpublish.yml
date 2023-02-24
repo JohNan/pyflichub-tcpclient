@@ -19,11 +19,16 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install setuptools wheel twine
-    - name: Build and publish
-      env:
-        TWINE_USERNAME: __token__
-        TWINE_PASSWORD: ${{ secrets.pypi }}
+        pip install build wheel twine setuptools setuptools_scm
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+    - name: Build package
       run: |
-        python setup.py sdist bdist_wheel
-        twine upload dist/*
+        python -m build --outdir dist/
+        python -m twine check dist/*
+        python -m setuptools_scm --strip-dev
+    - name: Publish package to PyPI
+      if: startsWith(github.ref, 'refs/tags')
+      uses: pypa/gh-action-pypi-publish@master
+      with:
+        password: ${{ secrets.PYPI }}
+        print_hash: true

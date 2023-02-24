@@ -36,7 +36,7 @@ class FlicHubTcpClient(asyncio.Protocol):
         self._transport = None
         self._command_callback = command_callback
         self._event_callback = event_callback
-        self._loop = loop or asyncio.get_event_loop()
+        self._loop = loop
         self._server_address = (ip, port)
         self._tcp_check_timer = time.time()
         self._tcp_disconnect_timer = time.time()
@@ -63,7 +63,7 @@ class FlicHubTcpClient(asyncio.Protocol):
                 except asyncio.TimeoutError:
                     _LOGGER.error("Connecting to socket timed out for %s", self._server_address)
                     _LOGGER.info("Waiting %s secs before trying to connect again", self._reconnect_timeout)
-                    await asyncio.sleep(self._reconnect_timeout, loop=self._loop)
+                    await asyncio.sleep(self._reconnect_timeout)
                 except OSError:
                     _LOGGER.error("Failed to connect to socket at %s", self._server_address)
                     _LOGGER.info("Waiting %s secs before trying to connect again", self._reconnect_timeout)

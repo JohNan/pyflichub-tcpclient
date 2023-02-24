@@ -1,4 +1,6 @@
 import asyncio
+from asyncio import AbstractEventLoop
+
 import async_timeout
 import logging
 
@@ -9,9 +11,8 @@ from pyflichub.event import Event
 
 logging.basicConfig(level=logging.DEBUG)
 
-CLIENT_READY_TIMEOUT = 20.0
+CLIENT_READY_TIMEOUT = 60.0
 HOST = ('192.168.1.64', 8124)
-LOOP = asyncio.get_event_loop()
 
 
 def event_callback(button: FlicButton, event: Event):
@@ -38,10 +39,11 @@ async def start():
     asyncio.create_task(client.async_connect())
 
     try:
-        with async_timeout.timeout(CLIENT_READY_TIMEOUT):
+        async with async_timeout.timeout(CLIENT_READY_TIMEOUT):
             await client_ready.wait()
     except asyncio.TimeoutError:
-        print(f"Client not connected after {CLIENT_READY_TIMEOUT} secs so continuing with setup")
+        print(f"Client not connected after {CLIENT_READY_TIMEOUT} secs so terminating")
+        exit()
 
     buttons = await client.get_buttons()
     for button in buttons:
@@ -52,12 +54,13 @@ async def start():
 
 
 if __name__ == '__main__':
-    client = FlicHubTcpClient(*HOST, loop=LOOP, event_callback=event_callback, command_callback=command_callback)
+    loop = asyncio.new_event_loop()
+    client = FlicHubTcpClient(*HOST, loop=loop, event_callback=event_callback, command_callback=command_callback)
     try:
-        LOOP.run_until_complete(start())
-        LOOP.run_forever()
+        loop.run_until_complete(start())
+        loop.run_forever()
     except KeyboardInterrupt:
         client.disconnect()
-        LOOP.close()
+        loop.close()
     except Exception as exc:  # pylint: disable=broad-except
         print(exc)
