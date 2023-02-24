@@ -3,7 +3,7 @@ name: Unit Testing
 on:
   pull_request:
     branches:
-      - master
+      - main
 
 jobs:
   unti_test:
