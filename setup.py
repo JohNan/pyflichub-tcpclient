@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="pyflichub-tcpclient",
-    version="0.0.1",
+    version="0.1.0",
     author="JohNan",
     author_email="johan.nanzen@gmail.com",
     description="Asynchronous Python TCP Client for FlicHub",
