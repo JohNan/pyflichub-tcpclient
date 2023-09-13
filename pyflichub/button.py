@@ -1,7 +1,8 @@
-class FlicButton:
+class FlicButton(dict):
     def __init__(self, bdaddr: str, serial_number: str, color: str, name: str, active_disconnect: bool, connected: bool,
                  ready: bool, battery_status: int, uuid: str, flic_version: int, firmware_version: int, key: str,
                  passive_mode: bool) -> None:
+        super().__init__()
         self.bdaddr = bdaddr
         self.serial_number = serial_number
         self.color = color

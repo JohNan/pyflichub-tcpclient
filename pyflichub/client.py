@@ -45,11 +45,13 @@ class FlicHubTcpClient(asyncio.Protocol):
         self._data = None
         self.on_connected = None
         self.on_disconnected = None
+        self._connecting = False
 
     async def async_connect(self):
+        self._connecting = True
         """Connect to the socket."""
         try:
-            while True:
+            while self._connecting:
                 _LOGGER.info("Trying to connect to %s", self._server_address)
                 try:
                     await asyncio.wait_for(
@@ -72,6 +74,9 @@ class FlicHubTcpClient(asyncio.Protocol):
             _LOGGER.debug("Connect attempt to %s cancelled", self._server_address)
 
     def disconnect(self):
+        _LOGGER.info("Disconnected")
+        self._connecting = False
+
         if self._transport is not None:
             self._transport.close()
 
@@ -112,11 +117,15 @@ class FlicHubTcpClient(asyncio.Protocol):
         if decoded_data == 'pong':
             return
 
-        msg = json.loads(decoded_data)
-        if 'event' in msg:
-            self._handle_event(Event(**msg))
-        if 'command' in msg:
-            self._handle_command(Command(**msg))
+        try:
+            msg = json.loads(decoded_data)
+            if 'event' in msg:
+                self._handle_event(Event(**msg))
+            if 'command' in msg:
+                self._handle_command(Command(**msg))
+        except Exception:
+            _LOGGER.warning('Unable to decode received data')
+
 
     def connection_lost(self, exc):
         _LOGGER.info("Connection lost")

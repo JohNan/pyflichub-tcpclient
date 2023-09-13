@@ -11,7 +11,7 @@ from pyflichub.event import Event
 
 logging.basicConfig(level=logging.DEBUG)
 
-CLIENT_READY_TIMEOUT = 60.0
+CLIENT_READY_TIMEOUT = 10.0
 HOST = ('192.168.1.64', 8124)
 
 
@@ -36,7 +36,7 @@ async def start():
     client.on_connected = client_connected
     client.on_disconnected = client_disconnected
 
-    asyncio.create_task(client.async_connect())
+    task = asyncio.create_task(client.async_connect())
 
     try:
         async with async_timeout.timeout(CLIENT_READY_TIMEOUT):
