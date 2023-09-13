@@ -27,7 +27,6 @@ jobs:
         python -m twine check dist/*
         python -m setuptools_scm --strip-dev
     - name: Publish package to PyPI
-      if: startsWith(github.ref, 'refs/tags')
       uses: pypa/gh-action-pypi-publish@master
       with:
         password: ${{ secrets.PYPI }}
