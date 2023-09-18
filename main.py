@@ -8,11 +8,12 @@ from pyflichub.button import FlicButton
 from pyflichub.client import FlicHubTcpClient
 from pyflichub.command import Command
 from pyflichub.event import Event
+from pyflichub.network import Network
 
 logging.basicConfig(level=logging.DEBUG)
 
 CLIENT_READY_TIMEOUT = 10.0
-HOST = ('192.168.1.64', 8124)
+HOST = ('192.168.1.249', 8124)
 
 
 def event_callback(button: FlicButton, event: Event):
@@ -45,9 +46,15 @@ async def start():
         print(f"Client not connected after {CLIENT_READY_TIMEOUT} secs so terminating")
         exit()
 
-    buttons = await client.get_buttons()
+    buttons: [FlicButton] = await client.get_buttons()
     for button in buttons:
         print(f"Button name: {button.name} - Connected: {button.connected}")
+
+    network: Network = await client.get_network()
+    if network.has_wifi():
+        print(f"Wifi State: {network.wifi.state} - Connected: {network.wifi.connected}")
+    if network.has_ethernet():
+        print(f"Ethernet IP: {network.ethernet.ip} - Connected: {network.ethernet.connected}")
 
     # for button in buttons:
     #     print(f"Button name: {button.name} - Battery: {await client.get_battery_status(button.bdaddr)}")
