@@ -1,7 +1,9 @@
 console.log("Made by JohNan - https://github.com/JohNan/pyflichub-tcpclient")
 
+var network = require('network');
 var net = require('net');
 var buttons = require('buttons');
+const EOL = "\n";
 
 // Configuration - start
 const PORT = 8124;
@@ -20,7 +22,7 @@ net.createServer(function (socket) {
             'button': button.bdaddr,
             'action': ''
         }
-        socket.write(JSON.stringify(response))
+        socket.write(JSON.stringify(response)+EOL)
     };
 
 
@@ -31,7 +33,7 @@ net.createServer(function (socket) {
             'button': button.bdaddr,
             'action': ''
         }
-        socket.write(JSON.stringify(response))
+        socket.write(JSON.stringify(response)+EOL)
     };
 
     var buttonAddedHandler = function (button) {
@@ -41,7 +43,7 @@ net.createServer(function (socket) {
             'button': button.bdaddr,
             'action': ''
         }
-        socket.write(JSON.stringify(response))
+        socket.write(JSON.stringify(response)+EOL)
     };
 
     var buttonDownHandler = function (button) {
@@ -51,7 +53,7 @@ net.createServer(function (socket) {
             'button': button.bdaddr,
             'action': 'down'
         }
-        socket.write(JSON.stringify(response))
+        socket.write(JSON.stringify(response)+EOL)
     };
 
     var buttonUpHandler = function (button) {
@@ -61,7 +63,7 @@ net.createServer(function (socket) {
             'button': button.bdaddr,
             'action': 'up'
         }
-        socket.write(JSON.stringify(response))
+        socket.write(JSON.stringify(response)+EOL)
     };
 
     var buttonSingleOrDoubleClickOrHoldHandler = function (button) {
@@ -72,7 +74,7 @@ net.createServer(function (socket) {
             'button': button.bdaddr,
             'action': action
         };
-        socket.write(JSON.stringify(response))
+        socket.write(JSON.stringify(response)+EOL)
     };
 
     function sendButtons() {
@@ -84,7 +86,8 @@ net.createServer(function (socket) {
             'data': _buttons
         };
 
-        socket.write(JSON.stringify(response))
+        console.log(response)
+        socket.write(JSON.stringify(response)+EOL)
     }
 
     buttons.on('buttonSingleOrDoubleClickOrHold', buttonSingleOrDoubleClickOrHoldHandler);
@@ -123,7 +126,7 @@ net.createServer(function (socket) {
                 'data': button.batteryStatus
             };
 
-            socket.write(JSON.stringify(response))
+            socket.write(JSON.stringify(response)+EOL)
         }
 
         if (msg === "buttons") {
@@ -135,21 +138,28 @@ net.createServer(function (socket) {
                 'data': _buttons
             };
 
-            socket.write(JSON.stringify(response))
+            socket.write(JSON.stringify(response)+EOL)
+        }
+
+        if (msg === "network") {
+            const _network = network.getState();
+            console.log(JSON.stringify(_network))
+
+            const response = {
+                'command': 'network',
+                'data': _network
+            };
+
+            socket.write(JSON.stringify(response)+EOL)
         }
 
         if (msg === "ping") {
             socket.write("pong")
         }
     });
-
-    // Send current buttons every 10 seconds
-    refreshIntervalId = setInterval(sendButtons, 10000);
 }).listen(PORT, function () {
     console.log("Opened server on port: " + PORT);
 });
 
 console.log("The server should have started now!")
 console.log("Waiting for connections...")
-
-

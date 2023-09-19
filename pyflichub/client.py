@@ -2,6 +2,7 @@ import asyncio
 import json
 import logging
 import time
+from datetime import datetime
 from functools import partial, wraps
 from typing import Union
 
@@ -11,6 +12,7 @@ import humps
 from pyflichub.command import Command
 from pyflichub.event import Event
 from pyflichub.button import FlicButton
+from pyflichub.network import Network
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -30,6 +32,7 @@ def wrap(func):
 
 class FlicHubTcpClient(asyncio.Protocol):
     buttons: [FlicButton] = []
+    network: Network
 
     def __init__(self, ip, port, loop, timeout=1.0, reconnect_timeout=10.0, event_callback=None, command_callback=None):
         self._data_ready: Union[asyncio.Event, None] = None
@@ -89,6 +92,9 @@ class FlicHubTcpClient(asyncio.Protocol):
     async def get_buttons(self):
         return await self._async_send_command('buttons')
 
+    async def get_network(self):
+        return await self._async_send_command('network')
+
     async def get_battery_status(self, bdaddr: str):
         return await self._async_send_command(f'battery;{bdaddr}')
 
@@ -113,18 +119,19 @@ class FlicHubTcpClient(asyncio.Protocol):
     def data_received(self, data):
         decoded_data = data.decode()
         _LOGGER.debug('Data received: {!r}'.format(decoded_data))
+        for data_part in [data_part for data_part in decoded_data.split("\n") if data_part.strip()]:
+            if data_part == 'pong':
+                pass
 
-        if decoded_data == 'pong':
-            return
-
-        try:
-            msg = json.loads(decoded_data)
-            if 'event' in msg:
-                self._handle_event(Event(**msg))
-            if 'command' in msg:
-                self._handle_command(Command(**msg))
-        except Exception:
-            _LOGGER.warning('Unable to decode received data')
+            try:
+                msg = json.loads(data_part, cls=_JSONDecoder)
+                if 'event' in msg:
+                    self._handle_event(Event(**msg))
+                if 'command' in msg:
+                    self._handle_command(Command(**msg))
+            except Exception as e:
+                _LOGGER.warning(e, exc_info = True)
+                _LOGGER.warning('Unable to decode received data')
 
 
     def connection_lost(self, exc):
@@ -139,6 +146,13 @@ class FlicHubTcpClient(asyncio.Protocol):
             command_data = cmd.data = self.buttons
             for button in self.buttons:
                 _LOGGER.debug(f"Button name: {button.name} - Connected: {button.connected}")
+        if cmd.command == 'network':
+            self.network = Network(**humps.decamelize(cmd.data))
+            command_data = cmd.data = self.network
+            if self.network.has_wifi():
+                _LOGGER.debug(f"Wifi State: {self.network.wifi.state} - Connected: {self.network.wifi.connected}")
+            if self.network.has_ethernet():
+                _LOGGER.debug(f"Ethernet IP: {self.network.ethernet.ip} - Connected: {self.network.ethernet.connected}")
 
         if self._data_ready is not None:
             self._data_ready.set()
@@ -170,3 +184,17 @@ class FlicHubTcpClient(asyncio.Protocol):
         msg = ""
         self._transport.write(msg.encode())
         self._tcp_check_timer = time.time()
+
+class _JSONDecoder(json.JSONDecoder):
+    def __init__(self, *args, **kwargs):
+        json.JSONDecoder.__init__(
+            self, object_hook=self.object_hook, *args, **kwargs)
+
+    def object_hook(self, obj):
+        ret = {}
+        for key, value in obj.items():
+            if key in {'batteryTimestamp'}:
+                ret[key] = datetime.fromtimestamp(value/1000)
+            else:
+                ret[key] = value
+        return ret

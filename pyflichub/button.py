@@ -1,8 +1,10 @@
-class FlicButton(dict):
+from datetime import datetime
+
+
+class FlicButton():
     def __init__(self, bdaddr: str, serial_number: str, color: str, name: str, active_disconnect: bool, connected: bool,
                  ready: bool, battery_status: int, uuid: str, flic_version: int, firmware_version: int, key: str,
-                 passive_mode: bool) -> None:
-        super().__init__()
+                 passive_mode: bool, battery_timestamp: datetime) -> None:
         self.bdaddr = bdaddr
         self.serial_number = serial_number
         self.color = color
@@ -16,3 +18,4 @@ class FlicButton(dict):
         self.firmware_version = firmware_version
         self.key = key
         self.passive_mode = passive_mode
+        self.battery_timestamp = battery_timestamp
