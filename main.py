@@ -8,7 +8,7 @@ from pyflichub.button import FlicButton
 from pyflichub.client import FlicHubTcpClient
 from pyflichub.command import Command
 from pyflichub.event import Event
-from pyflichub.network import Network
+from pyflichub.flichub import FlicHubInfo
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -50,7 +50,7 @@ async def start():
     for button in buttons:
         print(f"Button name: {button.name} - Connected: {button.connected}")
 
-    network: Network = await client.get_network()
+    network: FlicHubInfo = await client.get_hubinfo()
     if network.has_wifi():
         print(f"Wifi State: {network.wifi.state} - Connected: {network.wifi.connected}")
     if network.has_ethernet():

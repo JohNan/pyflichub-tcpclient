@@ -12,7 +12,7 @@ import humps
 from pyflichub.command import Command
 from pyflichub.event import Event
 from pyflichub.button import FlicButton
-from pyflichub.network import Network
+from pyflichub.flichub import FlicHubInfo
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -32,7 +32,7 @@ def wrap(func):
 
 class FlicHubTcpClient(asyncio.Protocol):
     buttons: [FlicButton] = []
-    network: Network
+    network: FlicHubInfo
 
     def __init__(self, ip, port, loop, timeout=1.0, reconnect_timeout=10.0, event_callback=None, command_callback=None):
         self._data_ready: Union[asyncio.Event, None] = None
@@ -92,7 +92,7 @@ class FlicHubTcpClient(asyncio.Protocol):
     async def get_buttons(self):
         return await self._async_send_command('buttons')
 
-    async def get_network(self):
+    async def get_hubinfo(self):
         return await self._async_send_command('network')
 
     async def get_battery_status(self, bdaddr: str):
@@ -147,7 +147,7 @@ class FlicHubTcpClient(asyncio.Protocol):
             for button in self.buttons:
                 _LOGGER.debug(f"Button name: {button.name} - Connected: {button.connected}")
         if cmd.command == 'network':
-            self.network = Network(**humps.decamelize(cmd.data))
+            self.network = FlicHubInfo(**humps.decamelize(cmd.data))
             command_data = cmd.data = self.network
             if self.network.has_wifi():
                 _LOGGER.debug(f"Wifi State: {self.network.wifi.state} - Connected: {self.network.wifi.connected}")

@@ -34,7 +34,7 @@ def _decode_ssid(ssid_list):
     return ''.join(chr(byte) for byte in ssid_list)
 
 
-class Network:
+class FlicHubInfo:
     def __init__(self, dhcp, wifi_state=None):
         self._dhcp = DhcpInfo(**dhcp)
         self._dhcp.wifi.state = wifi_state.get('state', None) if wifi_state else None
