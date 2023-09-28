@@ -30,8 +30,10 @@ class _WifiState:
         self.ssid = ssid
 
 
-def _decode_ssid(ssid_list):
-    return ''.join(chr(byte) for byte in ssid_list)
+def _decode_ssid(ssid):
+    if ssid is None:
+        return None
+    return ''.join(chr(byte) for byte in ssid)
 
 
 class FlicHubInfo:
