@@ -163,9 +163,17 @@ class FlicHubTcpClient(asyncio.Protocol):
 
     def _handle_event(self, event: Event):
         button = None
-        if event.event == 'button':
+        if event.event == 'button' or event.event == 'buttonConnected':
             button = self._get_button(event.button)
             _LOGGER.debug(f"Button {button.name} was {event.action}")
+
+        if event.event == 'buttonConnected':
+            button = self._get_button(event.button)
+            _LOGGER.debug(f"Button {button.name} is connected")
+
+        if event.event == 'buttonReady':
+            button = self._get_button(event.button)
+            _LOGGER.debug(f"Button {button.name} is ready")
 
         if self._event_callback is not None and button is not None:
             self._event_callback(button, event)
