@@ -9,10 +9,12 @@ from typing import Union
 import async_timeout
 import humps
 
+from pyflichub.button import FlicButton
 from pyflichub.command import Command
 from pyflichub.event import Event
-from pyflichub.button import FlicButton
 from pyflichub.flichub import FlicHubInfo
+from pyflichub.server_command import ServerCommand
+from pyflichub.server_info import ServerInfo
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -35,7 +37,7 @@ class FlicHubTcpClient(asyncio.Protocol):
     network: FlicHubInfo
 
     def __init__(self, ip, port, loop, timeout=1.0, reconnect_timeout=10.0, event_callback=None, command_callback=None):
-        self._data_ready: Union[asyncio.Event, None] = None
+        self._data_ready: {str: Union[asyncio.Event, None]} = {}
         self._transport = None
         self._command_callback = command_callback
         self._event_callback = event_callback
@@ -45,16 +47,16 @@ class FlicHubTcpClient(asyncio.Protocol):
         self._tcp_disconnect_timer = time.time()
         self._reconnect_timeout = reconnect_timeout
         self._timeout = timeout
-        self._data = None
-        self.on_connected = None
-        self.on_disconnected = None
+        self._data: dict = {}
         self._connecting = False
+        self._forced_disconnect = False
+        self.async_on_connected = None
+        self.async_on_disconnected = None
 
-    async def async_connect(self):
-        self._connecting = True
+    async def _async_connect(self):
         """Connect to the socket."""
         try:
-            while self._connecting:
+            while self._connecting and not self._forced_disconnect:
                 _LOGGER.info("Trying to connect to %s", self._server_address)
                 try:
                     await asyncio.wait_for(
@@ -79,33 +81,52 @@ class FlicHubTcpClient(asyncio.Protocol):
     def disconnect(self):
         _LOGGER.info("Disconnected")
         self._connecting = False
+        self._forced_disconnect = True
 
         if self._transport is not None:
             self._transport.close()
 
-        if self.on_disconnected is not None:
-            self.on_disconnected()
+        if self.async_on_disconnected is not None:
+            self._loop.create_task(self.async_on_disconnected())
 
-    async def connect(self):
-        await self._loop.create_connection(lambda: self, *self._server_address)
+    async def async_connect(self):
+        self._connecting = True
+        self._forced_disconnect = False
+        await self._async_connect()
 
-    async def get_buttons(self):
-        return await self._async_send_command('buttons')
+    def send_command(self, cmd: ServerCommand):
+        return self._async_send_command(cmd)
 
-    async def get_hubinfo(self):
-        return await self._async_send_command('network')
+    async def get_buttons(self) -> [FlicButton]:
+        command: Command = await self._async_send_command_and_wait_for_data(ServerCommand.BUTTONS)
+        return command.data if command is not None else []
 
-    async def get_battery_status(self, bdaddr: str):
-        return await self._async_send_command(f'battery;{bdaddr}')
+    async def get_server_info(self) -> ServerInfo | None:
+        command: Command = await self._async_send_command_and_wait_for_data(ServerCommand.SERVER_INFO)
+        return command.data
 
-    async def _async_send_command(self, cmd: str):
+    async def get_hubinfo(self) -> FlicHubInfo | None:
+        command: Command = await self._async_send_command_and_wait_for_data(ServerCommand.HUB_INFO)
+        return command.data
+
+    def _async_send_command(self, cmd: ServerCommand):
         if self._transport is not None:
-            self._data_ready = asyncio.Event()
-            self._transport.write(cmd.encode())
-            with async_timeout.timeout(DATA_READY_TIMEOUT):
-                await self._data_ready.wait()
-                self._data_ready = None
-                return self._data
+            self._transport.write(f"{cmd}\n".encode())
+        else:
+            _LOGGER.error("Connections seems to be closed.")
+
+    async def _async_send_command_and_wait_for_data(self, cmd: ServerCommand) -> Command | None:
+        if self._transport is not None:
+            self._data_ready[cmd] = asyncio.Event()
+            self._transport.write(f"{cmd}\n".encode())
+            try:
+                with async_timeout.timeout(DATA_READY_TIMEOUT):
+                    await self._data_ready[cmd].wait()
+                    self._data_ready[cmd] = None
+                    return self._data[cmd]
+            except asyncio.TimeoutError:
+                _LOGGER.warning(f"Waited for '{cmd}' data for {DATA_READY_TIMEOUT} secs.")
+                return None
         else:
             _LOGGER.error("Connections seems to be closed.")
 
@@ -113,8 +134,8 @@ class FlicHubTcpClient(asyncio.Protocol):
         self._transport = transport
         _LOGGER.debug("Connection made")
 
-        if self.on_connected is not None:
-            self.on_connected()
+        if self.async_on_connected is not None:
+            self._loop.create_task(self.async_on_connected())
 
     def data_received(self, data):
         decoded_data = data.decode()
@@ -130,33 +151,27 @@ class FlicHubTcpClient(asyncio.Protocol):
                 if 'command' in msg:
                     self._handle_command(Command(**msg))
             except Exception as e:
-                _LOGGER.warning(e, exc_info = True)
+                _LOGGER.warning(e, exc_info=True)
                 _LOGGER.warning('Unable to decode received data')
-
 
     def connection_lost(self, exc):
         _LOGGER.info("Connection lost")
+        self._connecting = True
         self._transport = None
-        self._loop.create_task(self.async_connect())
+        self._loop.create_task(self._async_connect())
 
     def _handle_command(self, cmd: Command):
-        command_data = cmd.data
-        if cmd.command == 'buttons':
+        if cmd.command == ServerCommand.SERVER_INFO:
+            cmd.data = ServerInfo(**humps.decamelize(cmd.data))
+        elif cmd.command == ServerCommand.BUTTONS:
             self.buttons = [FlicButton(**button) for button in humps.decamelize(cmd.data)]
-            command_data = cmd.data = self.buttons
-            for button in self.buttons:
-                _LOGGER.debug(f"Button name: {button.name} - Connected: {button.connected}")
-        if cmd.command == 'network':
-            self.network = FlicHubInfo(**humps.decamelize(cmd.data))
-            command_data = cmd.data = self.network
-            if self.network.has_wifi():
-                _LOGGER.debug(f"Wifi State: {self.network.wifi.state} - Connected: {self.network.wifi.connected}")
-            if self.network.has_ethernet():
-                _LOGGER.debug(f"Ethernet IP: {self.network.ethernet.ip} - Connected: {self.network.ethernet.connected}")
+            cmd.data = self.buttons
+        elif cmd.command == ServerCommand.HUB_INFO:
+            cmd.data = FlicHubInfo(**humps.decamelize(cmd.data))
 
-        if self._data_ready is not None:
-            self._data_ready.set()
-            self._data = command_data
+        if self._data_ready[cmd.command] is not None and cmd.data is not None:
+            self._data_ready[cmd.command].set()
+            self._data[cmd.command] = cmd
 
         if self._command_callback is not None:
             self._command_callback(cmd)
@@ -193,6 +208,7 @@ class FlicHubTcpClient(asyncio.Protocol):
         self._transport.write(msg.encode())
         self._tcp_check_timer = time.time()
 
+
 class _JSONDecoder(json.JSONDecoder):
     def __init__(self, *args, **kwargs):
         json.JSONDecoder.__init__(
@@ -202,7 +218,7 @@ class _JSONDecoder(json.JSONDecoder):
         ret = {}
         for key, value in obj.items():
             if key in {'batteryTimestamp'}:
-                ret[key] = datetime.fromtimestamp(value/1000)
+                ret[key] = datetime.fromtimestamp(value / 1000)
             else:
                 ret[key] = value
         return ret

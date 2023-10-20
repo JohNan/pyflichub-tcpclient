@@ -1,9 +1,10 @@
 console.log("Made by JohNan - https://github.com/JohNan/pyflichub-tcpclient")
 
-var network = require('network');
-var net = require('net');
-var buttons = require('buttons');
+const network = require('network');
+const net = require('net');
+const buttons = require('buttons');
 const EOL = "\n";
+const VERSION = "0.1.8";
 
 // Configuration - start
 const PORT = 8124;
@@ -11,84 +12,108 @@ const EVENT_BUTTON = "button";
 // Configuration - end
 
 net.createServer(function (socket) {
-    var refreshIntervalId = null;
-
-    console.log("Connection from " + socket.remoteAddress);
-
-    var buttonConnectedHandler = function (button) {
-        console.log('Button connected:' + button.bdaddr)
-        var response = {
-            'event': 'buttonConnected',
-            'button': button.bdaddr,
-            'action': ''
-        }
-        socket.write(JSON.stringify(response)+EOL)
-    };
-
-
-    var buttonReadyHandler = function (button) {
-        console.log('Button ready:' + button.bdaddr)
-        var response = {
-            'event': 'buttonReady',
-            'button': button.bdaddr,
-            'action': ''
-        }
-        socket.write(JSON.stringify(response)+EOL)
-    };
-
-    var buttonAddedHandler = function (button) {
-        console.log('Button added:' + button.bdaddr)
-        var response = {
-            'event': 'buttonAdded',
-            'button': button.bdaddr,
-            'action': ''
-        }
-        socket.write(JSON.stringify(response)+EOL)
-    };
-
-    var buttonDownHandler = function (button) {
-        console.log('Button clicked:' + button.bdaddr + ' - down')
-        var response = {
-            'event': EVENT_BUTTON,
-            'button': button.bdaddr,
-            'action': 'down'
-        }
-        socket.write(JSON.stringify(response)+EOL)
-    };
-
-    var buttonUpHandler = function (button) {
-        console.log('Button clicked:' + button.bdaddr + ' - up')
-        var response = {
-            'event': EVENT_BUTTON,
-            'button': button.bdaddr,
-            'action': 'up'
-        }
-        socket.write(JSON.stringify(response)+EOL)
-    };
-
-    var buttonSingleOrDoubleClickOrHoldHandler = function (button) {
-        const action = button.isSingleClick ? 'single' : button.isDoubleClick ? 'double' : 'hold';
-        console.log('Button clicked:' + button.bdaddr + ' - ' + action)
-        const response = {
-            'event': EVENT_BUTTON,
-            'button': button.bdaddr,
-            'action': action
-        };
-        socket.write(JSON.stringify(response)+EOL)
-    };
+    function write(_payload) {
+        socket.write(JSON.stringify(_payload) + EOL)
+    }
 
     function sendButtons() {
         const _buttons = buttons.getButtons();
         console.log(JSON.stringify(_buttons))
 
-        const response = {
+        const payload = {
             'command': 'buttons',
             'data': _buttons
         };
 
-        console.log(response)
-        socket.write(JSON.stringify(response)+EOL)
+        write(payload)
     }
+
+    function sendNetworkInfo() {
+        const _network = network.getState();
+        console.log(JSON.stringify(_network))
+
+        const payload = {
+            'command': 'network',
+            'data': _network
+        };
+
+        write(payload)
+    }
+
+    function sendServerInfo() {
+        const payload = {
+            'command': 'server_info',
+            'data': {
+                'version': VERSION
+            }
+        };
+
+        write(payload)
+    }
+
+    console.log("Connection from " + socket.remoteAddress);
+
+    const buttonConnectedHandler = function (button) {
+        console.log('Button connected:' + button.bdaddr)
+        const payload = {
+            'event': 'buttonConnected',
+            'button': button.bdaddr,
+            'action': ''
+        }
+        write(payload)
+    };
+
+
+    const buttonReadyHandler = function (button) {
+        console.log('Button ready:' + button.bdaddr)
+        const payload = {
+            'event': 'buttonReady',
+            'button': button.bdaddr,
+            'action': ''
+        }
+        write(payload)
+    };
+
+    const buttonAddedHandler = function (button) {
+        console.log('Button added:' + button.bdaddr)
+        const payload = {
+            'event': 'buttonAdded',
+            'button': button.bdaddr,
+            'action': ''
+        }
+        write(payload)
+    };
+
+    const buttonDownHandler = function (button) {
+        console.log('Button clicked:' + button.bdaddr + ' - down')
+        const payload = {
+            'event': EVENT_BUTTON,
+            'button': button.bdaddr,
+            'action': 'down'
+        }
+        write(payload)
+    };
+
+    const buttonUpHandler = function (button) {
+        console.log('Button clicked:' + button.bdaddr + ' - up')
+        const payload = {
+            'event': EVENT_BUTTON,
+            'button': button.bdaddr,
+            'action': 'up'
+        }
+        write(payload)
+    };
+
+    const buttonSingleOrDoubleClickOrHoldHandler = function (button) {
+        const action = button.isSingleClick ? 'single' : button.isDoubleClick ? 'double' : 'hold';
+        console.log('Button clicked:' + button.bdaddr + ' - ' + action)
+        const payload = {
+            'event': EVENT_BUTTON,
+            'button': button.bdaddr,
+            'action': action
+        };
+        write(payload)
+    };
 
     buttons.on('buttonSingleOrDoubleClickOrHold', buttonSingleOrDoubleClickOrHoldHandler);
     buttons.on('buttonUp', buttonUpHandler);
@@ -109,53 +134,30 @@ net.createServer(function (socket) {
         buttons.removeListener('buttonReady', buttonReadyHandler);
         buttons.removeListener('buttonAdded', buttonAddedHandler);
 
-        clearInterval(refreshIntervalId);
         socket.destroy();
     });
 
     socket.on('data', function (data) {
-        const msg = data.trim()
-        console.log("Received message: " + msg)
+        data.trim().split(EOL).forEach(function (msg) {
+            console.log("Received message: " + msg)
 
-        if (msg.startsWith("battery;")) {
-            const _bdaddr = msg.split(";")[1];
-            const button = buttons.getButton(_bdaddr)
-
-            const response = {
-                'command': 'battery',
-                'data': button.batteryStatus
-            };
-
-            socket.write(JSON.stringify(response)+EOL)
-        }
-
-        if (msg === "buttons") {
-            const _buttons = buttons.getButtons();
-            console.log(JSON.stringify(_buttons))
-
-            const response = {
-                'command': 'buttons',
-                'data': _buttons
-            };
-
-            socket.write(JSON.stringify(response)+EOL)
-        }
-
-        if (msg === "network") {
-            const _network = network.getState();
-            console.log(JSON.stringify(_network))
-
-            const response = {
-                'command': 'network',
-                'data': _network
-            };
-
-            socket.write(JSON.stringify(response)+EOL)
-        }
-
-        if (msg === "ping") {
-            socket.write("pong")
-        }
+            switch (msg) {
+                case "buttons":
+                    sendButtons();
+                    break;
+                case "network":
+                    sendNetworkInfo();
+                    break;
+                case "server":
+                    sendServerInfo();
+                    break;
+                case "ping":
+                    write("pong")
+                    break;
+                default:
+                    console.error("Unknown command: " + msg)
+            }
+        });
     });
 }).listen(PORT, function () {
     console.log("Opened server on port: " + PORT);

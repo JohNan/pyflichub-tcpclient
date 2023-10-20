@@ -13,7 +13,7 @@ from pyflichub.flichub import FlicHubInfo
 logging.basicConfig(level=logging.DEBUG)
 
 CLIENT_READY_TIMEOUT = 10.0
-HOST = ('192.168.1.249', 8124)
+HOST = ('192.168.1.64', 8124)
 
 
 def event_callback(button: FlicButton, event: Event):
@@ -27,15 +27,16 @@ def command_callback(cmd: Command):
 async def start():
     client_ready = asyncio.Event()
 
-    def client_connected():
+    async def client_connected():
         print("Connected!")
         client_ready.set()
+        await client.get_server_info()
 
-    def client_disconnected():
+    async def client_disconnected():
         print("Disconnected!")
 
-    client.on_connected = client_connected
-    client.on_disconnected = client_disconnected
+    client.async_on_connected = client_connected
+    client.async_on_disconnected = client_disconnected
 
     task = asyncio.create_task(client.async_connect())
 
@@ -55,9 +56,6 @@ async def start():
         print(f"Wifi State: {network.wifi.state} - Connected: {network.wifi.connected}")
     if network.has_ethernet():
         print(f"Ethernet IP: {network.ethernet.ip} - Connected: {network.ethernet.connected}")
-
-    # for button in buttons:
-    #     print(f"Button name: {button.name} - Battery: {await client.get_battery_status(button.bdaddr)}")
 
 
 if __name__ == '__main__':
