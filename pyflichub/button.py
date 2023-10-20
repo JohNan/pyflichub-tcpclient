@@ -1,6 +1,8 @@
+from dataclasses import dataclass
 from datetime import datetime
 
 
+@dataclass
 class FlicButton():
     def __init__(self, bdaddr: str, serial_number: str, color: str, name: str, active_disconnect: bool, connected: bool,
                  ready: bool, battery_status: int, uuid: str, flic_version: int, firmware_version: int, key: str,

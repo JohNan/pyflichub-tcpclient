@@ -1,6 +1,7 @@
-from typing import List
+from dataclasses import dataclass
 
 
+@dataclass
 class WifiInfo:
     state: str
     ssid: str
@@ -11,6 +12,7 @@ class WifiInfo:
         self.mac = mac
 
 
+@dataclass
 class EthernetInfo:
     def __init__(self, connected, ip, mac):
         self.connected = connected
@@ -18,12 +20,14 @@ class EthernetInfo:
         self.mac = mac
 
 
+@dataclass
 class DhcpInfo:
     def __init__(self, wifi=None, ethernet=None):
         self.wifi = WifiInfo(**wifi) if wifi else None
         self.ethernet = EthernetInfo(**ethernet) if ethernet else None
 
 
+@dataclass
 class _WifiState:
     def __init__(self, state, ssid):
         self.state = state
@@ -36,6 +40,7 @@ def _decode_ssid(ssid):
     return ''.join(chr(byte) for byte in ssid)
 
 
+@dataclass
 class FlicHubInfo:
     def __init__(self, dhcp, wifi_state=None):
         self._dhcp = DhcpInfo(**dhcp)
@@ -55,4 +60,3 @@ class FlicHubInfo:
     @property
     def ethernet(self) -> EthernetInfo:
         return self._dhcp.ethernet
-
