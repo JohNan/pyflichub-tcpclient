@@ -6,7 +6,7 @@ from datetime import datetime
 class FlicButton():
     def __init__(self, bdaddr: str, serial_number: str, color: str, name: str, active_disconnect: bool, connected: bool,
                  ready: bool, battery_status: int, uuid: str, flic_version: int, firmware_version: int, key: str,
-                 passive_mode: bool, battery_timestamp: datetime = None) -> None:
+                 passive_mode: bool, battery_timestamp: datetime = None, boot_id: str = "") -> None:
         self.bdaddr = bdaddr
         self.serial_number = serial_number
         self.color = color
@@ -21,3 +21,4 @@ class FlicButton():
         self.key = key
         self.passive_mode = passive_mode
         self.battery_timestamp = battery_timestamp
+        self.boot_id = boot_id
