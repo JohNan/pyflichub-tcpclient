@@ -33,11 +33,11 @@ def wrap(func):
 
 
 class FlicHubTcpClient(asyncio.Protocol):
-    buttons: [FlicButton] = []
+    buttons: list[FlicButton] = []
     network: FlicHubInfo
 
     def __init__(self, ip, port, loop, timeout=1.0, reconnect_timeout=10.0, event_callback=None, command_callback=None):
-        self._data_ready: {str: Union[asyncio.Event, None]} = {}
+        self._data_ready: dict[str: Union[asyncio.Event, None]] = {}
         self._transport = None
         self._command_callback = command_callback
         self._event_callback = event_callback
@@ -48,6 +48,7 @@ class FlicHubTcpClient(asyncio.Protocol):
         self._reconnect_timeout = reconnect_timeout
         self._timeout = timeout
         self._data: dict = {}
+        self._buffer = None
         self._connecting = False
         self._forced_disconnect = False
         self.async_on_connected = None
@@ -97,7 +98,7 @@ class FlicHubTcpClient(asyncio.Protocol):
     def send_command(self, cmd: ServerCommand):
         return self._async_send_command(cmd)
 
-    async def get_buttons(self) -> [FlicButton]:
+    async def get_buttons(self) -> list[FlicButton]:
         command: Command = await self._async_send_command_and_wait_for_data(ServerCommand.BUTTONS)
         return command.data if command is not None else []
 
@@ -139,6 +140,18 @@ class FlicHubTcpClient(asyncio.Protocol):
 
     def data_received(self, data):
         decoded_data = data.decode()
+        if "\n" not in decoded_data:
+            if not self._buffer:
+                _LOGGER.debug('First data fragment received: {!r}'.format(decoded_data))
+                self._buffer = decoded_data
+            else:
+                _LOGGER.debug('Data fragment received: {!r}'.format(decoded_data))
+                self._buffer += decoded_data
+            return
+        else:
+            if self._buffer:
+                decoded_data = self._buffer + decoded_data
+               
         _LOGGER.debug('Data received: {!r}'.format(decoded_data))
         for data_part in [data_part for data_part in decoded_data.split("\n") if data_part.strip()]:
             if data_part == 'pong':
@@ -153,6 +166,8 @@ class FlicHubTcpClient(asyncio.Protocol):
             except Exception as e:
                 _LOGGER.warning(e, exc_info=True)
                 _LOGGER.warning('Unable to decode received data')
+
+        self._buffer = None
 
     def connection_lost(self, exc):
         _LOGGER.info("Connection lost")

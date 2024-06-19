@@ -47,7 +47,7 @@ async def start():
         print(f"Client not connected after {CLIENT_READY_TIMEOUT} secs so terminating")
         exit()
 
-    buttons: [FlicButton] = await client.get_buttons()
+    buttons: list[FlicButton] = await client.get_buttons()
     for button in buttons:
         print(f"Button name: {button.name} - Connected: {button.connected}")
 
