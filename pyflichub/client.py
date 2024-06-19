@@ -33,7 +33,7 @@ def wrap(func):
 
 
 class FlicHubTcpClient(asyncio.Protocol):
-    buttons: [FlicButton] = []
+    buttons: list[FlicButton] = []
     network: FlicHubInfo
 
     def __init__(self, ip, port, loop, timeout=1.0, reconnect_timeout=10.0, event_callback=None, command_callback=None):
@@ -97,7 +97,7 @@ class FlicHubTcpClient(asyncio.Protocol):
     def send_command(self, cmd: ServerCommand):
         return self._async_send_command(cmd)
 
-    async def get_buttons(self) -> [FlicButton]:
+    async def get_buttons(self) -> list[FlicButton]:
         command: Command = await self._async_send_command_and_wait_for_data(ServerCommand.BUTTONS)
         return command.data if command is not None else []
 
