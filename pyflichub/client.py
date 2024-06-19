@@ -37,7 +37,7 @@ class FlicHubTcpClient(asyncio.Protocol):
     network: FlicHubInfo
 
     def __init__(self, ip, port, loop, timeout=1.0, reconnect_timeout=10.0, event_callback=None, command_callback=None):
-        self._data_ready: {str: Union[asyncio.Event, None]} = {}
+        self._data_ready: dict[str: Union[asyncio.Event, None]] = {}
         self._transport = None
         self._command_callback = command_callback
         self._event_callback = event_callback
