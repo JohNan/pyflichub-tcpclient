@@ -7,6 +7,7 @@ const EOL = "\n";
 const VERSION = "0.1.9";
 
 // Configuration - start
+const HOST = "0.0.0.0";
 const PORT = 8124;
 const EVENT_BUTTON = "button";
 // Configuration - end
@@ -122,7 +123,7 @@ net.createServer(function (socket) {
     buttons.on('buttonReady', buttonReadyHandler);
     buttons.on('buttonAdded', buttonAddedHandler);
 
-    socket.setEncoding();
+    socket.setEncoding("utf8");
 
     socket.on('end', function () {
         console.log('Client disconnected: ' + socket.remoteAddress);
@@ -159,7 +160,7 @@ net.createServer(function (socket) {
             }
         });
     });
-}).listen(PORT, function () {
+}).listen(PORT, HOST, function () {
     console.log("Opened server on port: " + PORT);
 });
 
