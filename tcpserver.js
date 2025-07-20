@@ -4,7 +4,7 @@ const network = require('network');
 const net = require('net');
 const buttons = require('buttons');
 const EOL = "\n";
-const VERSION = "0.1.9";
+const VERSION = "0.1.10";
 
 // Configuration - start
 const HOST = "0.0.0.0";
@@ -54,71 +54,57 @@ net.createServer(function (socket) {
 
     console.log("Connection from " + socket.remoteAddress);
 
-    const buttonConnectedHandler = function (button) {
-        console.log('Button connected:' + button.bdaddr)
+    const sendButtonPayload = function (button, {event=EVENT_BUTTON, action=''}) {
         const payload = {
-            'event': 'buttonConnected',
+            'event': event,
             'button': button.bdaddr,
-            'action': ''
+            'action': action
         }
         write(payload)
-    };
+    }
 
+    const buttonConnectedHandler = function (button) {
+        console.log('Button connected:' + button.bdaddr)
+        sendButtonPayload(button, {event: 'buttonConnected'})
+    };
 
     const buttonReadyHandler = function (button) {
         console.log('Button ready:' + button.bdaddr)
-        const payload = {
-            'event': 'buttonReady',
-            'button': button.bdaddr,
-            'action': ''
-        }
-        write(payload)
+        sendButtonPayload(button, {event: 'buttonReady'})
     };
 
     const buttonAddedHandler = function (button) {
         console.log('Button added:' + button.bdaddr)
-        const payload = {
-            'event': 'buttonAdded',
-            'button': button.bdaddr,
-            'action': ''
-        }
-        write(payload)
+        sendButtonPayload(button, {event: 'buttonAdded'})
     };
 
     const buttonDownHandler = function (button) {
         console.log('Button clicked:' + button.bdaddr + ' - down')
-        const payload = {
-            'event': EVENT_BUTTON,
-            'button': button.bdaddr,
-            'action': 'down'
-        }
-        write(payload)
+        sendButtonPayload(button, {action: 'down'})
     };
 
     const buttonUpHandler = function (button) {
         console.log('Button clicked:' + button.bdaddr + ' - up')
-        const payload = {
-            'event': EVENT_BUTTON,
-            'button': button.bdaddr,
-            'action': 'up'
-        }
-        write(payload)
+        sendButtonPayload(button, {action: 'up'})
     };
+	
+    const buttonIdle = function (button) {
+        console.log('Button ' + button.bdaddr + ' returning to idle')
+        sendButtonPayload(button, {action: 'idle'})
+    }
 
     const buttonSingleOrDoubleClickOrHoldHandler = function (button) {
         const action = button.isSingleClick ? 'single' : button.isDoubleClick ? 'double' : 'hold';
         console.log('Button clicked:' + button.bdaddr + ' - ' + action)
-        const payload = {
-            'event': EVENT_BUTTON,
-            'button': button.bdaddr,
-            'action': action
-        };
-        write(payload)
+        sendButtonPayload(button, {action})
+        // manually trigger a cycle so HA sees the button as newly "on"
+        buttonDownHandler(button);
+        buttonUpHandler(button);
+        // set the button back to idle after a moment
+        setTimeout(buttonIdle, 100, button);
     };
 
     buttons.on('buttonSingleOrDoubleClickOrHold', buttonSingleOrDoubleClickOrHoldHandler);
-    buttons.on('buttonUp', buttonUpHandler);
-    buttons.on('buttonDown', buttonDownHandler);
     buttons.on('buttonConnected', buttonConnectedHandler);
     buttons.on('buttonReady', buttonReadyHandler);
     buttons.on('buttonAdded', buttonAddedHandler);
