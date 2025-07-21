@@ -4,7 +4,7 @@ const network = require('network');
 const net = require('net');
 const buttons = require('buttons');
 const EOL = "\n";
-const VERSION = "0.1.10";
+const VERSION = "0.1.11";
 
 // Configuration - start
 const HOST = "0.0.0.0";
