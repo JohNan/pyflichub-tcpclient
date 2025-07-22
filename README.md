@@ -1,6 +1,6 @@
 # Asynchronous Python TCP Client for FlicHub
 
-Get events from the FlicHub when a Flic Button is clicked and send them to [home-assistant-flichub](https://github.com/JohNan/home-assistant-flichub).
+Get events from the FlicHub when a Flic/Twist Button is clicked and send them to [home-assistant-flichub](https://github.com/JohNan/home-assistant-flichub).
 
 To be able to use this client you need to enable the Flic Hub SDK described on [this](https://flic.io/flic-hub-sdk) page.
 
