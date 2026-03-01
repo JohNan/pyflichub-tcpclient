@@ -4,7 +4,7 @@ import logging
 import time
 from datetime import datetime
 from functools import partial, wraps
-from typing import Union
+from typing import Union, Any
 
 import async_timeout
 import humps
@@ -95,8 +95,11 @@ class FlicHubTcpClient(asyncio.Protocol):
         self._forced_disconnect = False
         await self._async_connect()
 
-    def send_command(self, cmd: ServerCommand):
-        return self._async_send_command(cmd)
+    def send_command(self, cmd: ServerCommand, data: Any = None):
+        return self._async_send_command(cmd, data)
+
+    async def play_ir(self, signal: str):
+        self._async_send_command(ServerCommand.PLAY_IR, signal)
 
     async def get_buttons(self) -> list[FlicButton]:
         command: Command = await self._async_send_command_and_wait_for_data(ServerCommand.BUTTONS)
@@ -110,9 +113,12 @@ class FlicHubTcpClient(asyncio.Protocol):
         command: Command = await self._async_send_command_and_wait_for_data(ServerCommand.HUB_INFO)
         return command.data
 
-    def _async_send_command(self, cmd: ServerCommand):
+    def _async_send_command(self, cmd: ServerCommand, data: Any = None):
         if self._transport is not None:
-            self._transport.write(f"{cmd}\n".encode())
+            if data is None:
+                self._transport.write(f"{cmd}\n".encode())
+            else:
+                self._transport.write((json.dumps({"command": cmd, "data": data}) + "\n").encode())
         else:
             _LOGGER.error("Connections seems to be closed.")
 

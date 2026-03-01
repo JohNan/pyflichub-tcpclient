@@ -3,6 +3,7 @@ console.log("Made by JohNan - https://github.com/JohNan/pyflichub-tcpclient")
 const network = require('network');
 const net = require('net');
 const buttons = require('buttons');
+const ir = require('ir');
 const EOL = "\n";
 const VERSION = "0.1.11";
 
@@ -127,7 +128,20 @@ net.createServer(function (socket) {
         data.trim().split(EOL).forEach(function (msg) {
             console.log("Received message: " + msg)
 
-            switch (msg) {
+            let command = msg;
+            let commandData = null;
+
+            try {
+                const jsonMsg = JSON.parse(msg);
+                if (jsonMsg.command) {
+                    command = jsonMsg.command;
+                    commandData = jsonMsg.data;
+                }
+            } catch (e) {
+                // Not a JSON message, treat as plain string command
+            }
+
+            switch (command) {
                 case "buttons":
                     sendButtons();
                     break;
@@ -140,8 +154,13 @@ net.createServer(function (socket) {
                 case "ping":
                     write("pong")
                     break;
+                case "play_ir":
+                    if (commandData) {
+                        ir.play(commandData);
+                    }
+                    break;
                 default:
-                    console.error("Unknown command: " + msg)
+                    console.error("Unknown command: " + command)
             }
         });
     });
