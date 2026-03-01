@@ -48,7 +48,7 @@ class FlicHubTcpClient(asyncio.Protocol):
         self._reconnect_timeout = reconnect_timeout
         self._timeout = timeout
         self._data: dict = {}
-        self._buffer = None
+        self._buffer = b""
         self._connecting = False
         self._forced_disconnect = False
         self.async_on_connected = None
@@ -139,26 +139,21 @@ class FlicHubTcpClient(asyncio.Protocol):
             self._loop.create_task(self.async_on_connected())
 
     def data_received(self, data):
-        decoded_data = data.decode()
-        if "\n" not in decoded_data:
-            if not self._buffer:
-                _LOGGER.debug('First data fragment received: {!r}'.format(decoded_data))
-                self._buffer = decoded_data
-            else:
-                _LOGGER.debug('Data fragment received: {!r}'.format(decoded_data))
-                self._buffer += decoded_data
-            return
-        else:
-            if self._buffer:
-                decoded_data = self._buffer + decoded_data
+        self._buffer += data
                
-        _LOGGER.debug('Data received: {!r}'.format(decoded_data))
-        for data_part in [data_part for data_part in decoded_data.split("\n") if data_part.strip()]:
-            if data_part == 'pong':
+        _LOGGER.debug('Data received: {!r}'.format(data.decode('utf-8', errors='replace')))
+
+        while b"\n" in self._buffer:
+            line, self._buffer = self._buffer.split(b"\n", 1)
+            decoded_line = line.decode().strip()
+            if not decoded_line:
+                continue
+
+            if decoded_line == 'pong':
                 pass
 
             try:
-                msg = json.loads(data_part, cls=_JSONDecoder)
+                msg = json.loads(decoded_line, cls=_JSONDecoder)
                 if 'event' in msg:
                     self._handle_event(Event(**msg))
                 if 'command' in msg:
@@ -166,8 +161,6 @@ class FlicHubTcpClient(asyncio.Protocol):
             except Exception as e:
                 _LOGGER.warning(e, exc_info=True)
                 _LOGGER.warning('Unable to decode received data')
-
-        self._buffer = None
 
     def connection_lost(self, exc):
         _LOGGER.info("Connection lost")
