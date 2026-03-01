@@ -31,6 +31,7 @@ async def start():
         print("Connected!")
         client_ready.set()
         await client.get_server_info()
+        await client.async_check_for_updates()
 
     async def client_disconnected():
         print("Disconnected!")

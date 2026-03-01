@@ -15,6 +15,7 @@ from pyflichub.event import Event
 from pyflichub.flichub import FlicHubInfo
 from pyflichub.server_command import ServerCommand
 from pyflichub.server_info import ServerInfo
+from pyflichub.updater import check_for_updates, UPDATE_LINK
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -109,6 +110,27 @@ class FlicHubTcpClient(asyncio.Protocol):
     async def get_hubinfo(self) -> FlicHubInfo | None:
         command: Command = await self._async_send_command_and_wait_for_data(ServerCommand.HUB_INFO)
         return command.data
+
+    async def async_check_for_updates(self):
+        try:
+            # Check library version
+            from .version import __version__
+        except ImportError:
+            __version__ = "0.0.0"
+
+        update_available, latest_version = await self._loop.run_in_executor(None, check_for_updates, __version__)
+        if update_available:
+            print(f"A new version of pyflichub-tcpclient is available: {latest_version} (current: {__version__})")
+            print(f"Please update the library and the code in your Flic Hub: {UPDATE_LINK}")
+            return
+
+        # Check Hub version
+        server_info = await self.get_server_info()
+        if server_info and server_info.version:
+            update_available, latest_version = await self._loop.run_in_executor(None, check_for_updates, server_info.version)
+            if update_available:
+                print(f"A new version of the Flic Hub script is available: {latest_version} (current: {server_info.version})")
+                print(f"Please update the code in your Flic Hub: {UPDATE_LINK}")
 
     def _async_send_command(self, cmd: ServerCommand):
         if self._transport is not None:
