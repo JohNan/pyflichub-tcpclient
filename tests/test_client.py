@@ -11,7 +11,7 @@ logging.basicConfig(level=logging.DEBUG)
 
 class DummyClient(FlicHubTcpClient):
     def __init__(self):
-        super().__init__('127.0.0.1', 8124, asyncio.get_event_loop())
+        super().__init__('127.0.0.1', 8124, asyncio.new_event_loop())
         self.events_received = []
         self.commands_received = []
 
