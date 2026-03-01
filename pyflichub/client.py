@@ -98,6 +98,18 @@ class FlicHubTcpClient(asyncio.Protocol):
     def send_command(self, cmd: ServerCommand):
         return self._async_send_command(cmd)
 
+    def send_virtual_device_update_state(self, dimmable_type: str, virtual_device_id: str, values: dict):
+        payload = json.dumps({
+            "command": "virtualDeviceUpdateState",
+            "dimmableType": dimmable_type,
+            "virtualDeviceId": virtual_device_id,
+            "values": values
+        })
+        if self._transport is not None:
+            self._transport.write(f"{payload}\n".encode())
+        else:
+            _LOGGER.error("Connections seems to be closed.")
+
     async def get_buttons(self) -> list[FlicButton]:
         command: Command = await self._async_send_command_and_wait_for_data(ServerCommand.BUTTONS)
         return command.data if command is not None else []
@@ -195,18 +207,31 @@ class FlicHubTcpClient(asyncio.Protocol):
         button = None
         if event.event == 'button':
             button = self._get_button(event.button)
-            _LOGGER.debug(f"Button {button.name} was {event.action}")
+            if button:
+                _LOGGER.debug(f"Button {button.name} was {event.action}")
 
-        if event.event == 'buttonConnected':
+        elif event.event == 'buttonConnected':
             button = self._get_button(event.button)
-            _LOGGER.debug(f"Button {button.name} is connected")
+            if button:
+                _LOGGER.debug(f"Button {button.name} is connected")
 
-        if event.event == 'buttonReady':
+        elif event.event == 'buttonReady':
             button = self._get_button(event.button)
-            _LOGGER.debug(f"Button {button.name} is ready")
+            if button:
+                _LOGGER.debug(f"Button {button.name} is ready")
 
-        if self._event_callback is not None and button is not None:
-            self._event_callback(button, event)
+        elif event.event == 'actionMessage':
+            _LOGGER.debug(f"Action message received: {event.action}")
+
+        elif event.event == 'virtualDeviceUpdate':
+            if event.meta_data and 'virtual_device_id' in event.meta_data:
+                _LOGGER.debug(f"Virtual device update received: {event.meta_data['virtual_device_id']}")
+
+        if self._event_callback is not None:
+            if event.event in ['actionMessage', 'virtualDeviceUpdate']:
+                self._event_callback(button, event)
+            elif button is not None:
+                self._event_callback(button, event)
 
     def _get_button(self, bdaddr: str) -> FlicButton:
         return next((x for x in self.buttons if x.bdaddr == bdaddr), None)
