@@ -96,12 +96,11 @@ net.createServer(function (socket) {
     const buttonSingleOrDoubleClickOrHoldHandler = function (button) {
         const action = button.isSingleClick ? 'single' : button.isDoubleClick ? 'double' : 'hold';
         console.log('Button clicked:' + button.bdaddr + ' - ' + action)
-        sendButtonPayload(button, {action})
-        // manually trigger a cycle so HA sees the button as newly "on"
+
         buttonDownHandler(button);
-        buttonUpHandler(button);
-        // set the button back to idle after a moment
-        setTimeout(buttonIdle, 100, button);
+        setTimeout(buttonUpHandler, 50, button);
+        setTimeout(sendButtonPayload, 100, button, {action});
+        setTimeout(buttonIdle, 150, button);
     };
 
     buttons.on('buttonSingleOrDoubleClickOrHold', buttonSingleOrDoubleClickOrHoldHandler);
