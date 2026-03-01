@@ -3,6 +3,7 @@ console.log("Made by JohNan - https://github.com/JohNan/pyflichub-tcpclient")
 const network = require('network');
 const net = require('net');
 const buttons = require('buttons');
+const flicapp = require('flicapp');
 const EOL = "\n";
 const VERSION = "0.1.11";
 
@@ -103,10 +104,37 @@ net.createServer(function (socket) {
         setTimeout(buttonIdle, 150, button);
     };
 
+    const virtualDeviceUpdateHandler = function (metaData, values) {
+        console.log('Twist ' + metaData.buttonId + ' updated virtual device ' + metaData.virtualDeviceId);
+        const meta_data = {
+            'button_id': metaData.buttonId,
+            'virtual_device_id': metaData.virtualDeviceId,
+            'dimmable_type': metaData.dimmableType
+        };
+        const payload = {
+            'event': 'virtualDeviceUpdate',
+            'meta_data': meta_data,
+            'values': values
+        };
+        write(payload);
+    };
+
+    const actionMessageHandler = function (message) {
+        console.log('Got an action message: ' + message);
+        const payload = {
+            'event': 'actionMessage',
+            'action': message
+        };
+        write(payload);
+    };
+
     buttons.on('buttonSingleOrDoubleClickOrHold', buttonSingleOrDoubleClickOrHoldHandler);
     buttons.on('buttonConnected', buttonConnectedHandler);
     buttons.on('buttonReady', buttonReadyHandler);
     buttons.on('buttonAdded', buttonAddedHandler);
+
+    flicapp.on('virtualDeviceUpdate', virtualDeviceUpdateHandler);
+    flicapp.on('actionMessage', actionMessageHandler);
 
     socket.setEncoding("utf8");
 
@@ -119,6 +147,8 @@ net.createServer(function (socket) {
         buttons.removeListener('buttonConnected', buttonConnectedHandler);
         buttons.removeListener('buttonReady', buttonReadyHandler);
         buttons.removeListener('buttonAdded', buttonAddedHandler);
+        flicapp.removeListener('virtualDeviceUpdate', virtualDeviceUpdateHandler);
+        flicapp.removeListener('actionMessage', actionMessageHandler);
 
         socket.destroy();
     });
@@ -126,6 +156,18 @@ net.createServer(function (socket) {
     socket.on('data', function (data) {
         data.trim().split(EOL).forEach(function (msg) {
             console.log("Received message: " + msg)
+
+            if (msg.startsWith("{")) {
+                try {
+                    const parsed = JSON.parse(msg);
+                    if (parsed.command === "virtualDeviceUpdateState") {
+                        flicapp.virtualDeviceUpdateState(parsed.dimmableType, parsed.virtualDeviceId, parsed.values);
+                    }
+                } catch (e) {
+                    console.error("Failed to parse JSON: " + msg);
+                }
+                return;
+            }
 
             switch (msg) {
                 case "buttons":
