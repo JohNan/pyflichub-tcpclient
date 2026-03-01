@@ -1,5 +1,6 @@
 import asyncio
 import json
+import pytest
 from pyflichub.client import FlicHubTcpClient
 from pyflichub.server_command import ServerCommand
 
@@ -13,8 +14,9 @@ class MockTransport:
     def close(self):
         pass
 
+@pytest.mark.asyncio
 async def test_play_ir():
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     client = FlicHubTcpClient("127.0.0.1", 8124, loop)
     transport = MockTransport()
     client.connection_made(transport)
