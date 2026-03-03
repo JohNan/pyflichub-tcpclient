@@ -55,6 +55,61 @@ def test_data_received_pong():
     assert len(client.commands_received) == 0
     assert client._buffer == b""
 
+def test_button_events_handling():
+    from pyflichub.button import FlicButton
+
+    events_received = []
+
+    def mock_event_callback(button, event):
+        events_received.append((button, event))
+
+    client = FlicHubTcpClient('127.0.0.1', 8124, asyncio.new_event_loop(), event_callback=mock_event_callback)
+
+    # Mock get_buttons so it doesn't try to send over TCP
+    async def mock_get_buttons():
+        return []
+
+    def mock_create_task(coro):
+        coro.close() # prevent coroutine was never awaited warning
+
+    client.get_buttons = mock_get_buttons
+    client._loop.create_task = mock_create_task
+
+    btn1 = FlicButton(bdaddr="aa:bb:cc", serial_number="sn", color="black", name="test1",
+                      active_disconnect=False, connected=False, ready=False, battery_status=100,
+                      uuid="uuid", flic_version=2, firmware_version=1, key="key", passive_mode=False)
+    client.buttons = [btn1]
+
+    # Test buttonAdded
+    client.data_received(b'{"event": "buttonAdded", "button": "xx:yy:zz"}\n')
+    assert len(events_received) == 1
+    assert events_received[-1][0] is None  # Unknown button
+    assert events_received[-1][1].event == "buttonAdded"
+
+    # Test buttonConnected
+    client.data_received(b'{"event": "buttonConnected", "button": "aa:bb:cc"}\n')
+    assert client.buttons[0].connected is True
+    assert events_received[-1][0] == btn1
+    assert events_received[-1][1].event == "buttonConnected"
+
+    # Test buttonReady
+    client.data_received(b'{"event": "buttonReady", "button": "aa:bb:cc"}\n')
+    assert client.buttons[0].ready is True
+    assert events_received[-1][0] == btn1
+    assert events_received[-1][1].event == "buttonReady"
+
+    # Test buttonDisconnected
+    client.data_received(b'{"event": "buttonDisconnected", "button": "aa:bb:cc"}\n')
+    assert client.buttons[0].connected is False
+    assert events_received[-1][0] == btn1
+    assert events_received[-1][1].event == "buttonDisconnected"
+
+    # Test buttonDeleted
+    client.data_received(b'{"event": "buttonDeleted", "button": "aa:bb:cc"}\n')
+    assert len(client.buttons) == 0
+    assert events_received[-1][0] == btn1
+    assert events_received[-1][1].event == "buttonDeleted"
+
 
 def test_play_ir():
     from unittest.mock import MagicMock
