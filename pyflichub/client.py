@@ -235,14 +235,34 @@ class FlicHubTcpClient(asyncio.Protocol):
             if button:
                 _LOGGER.debug(f"Button {button.name} was {event.action}")
 
+        elif event.event == 'buttonAdded':
+            button = self._get_button(event.button)
+            if not button:
+                _LOGGER.debug(f"Button {event.button} added, fetching details")
+                self._loop.create_task(self.get_buttons())
+
+        elif event.event == 'buttonDeleted':
+            button = self._get_button(event.button)
+            if button:
+                _LOGGER.debug(f"Button {button.name} deleted")
+                self.buttons.remove(button)
+
         elif event.event == 'buttonConnected':
             button = self._get_button(event.button)
             if button:
+                button.connected = True
                 _LOGGER.debug(f"Button {button.name} is connected")
+
+        elif event.event == 'buttonDisconnected':
+            button = self._get_button(event.button)
+            if button:
+                button.connected = False
+                _LOGGER.debug(f"Button {button.name} is disconnected")
 
         elif event.event == 'buttonReady':
             button = self._get_button(event.button)
             if button:
+                button.ready = True
                 _LOGGER.debug(f"Button {button.name} is ready")
 
         elif event.event == 'actionMessage':
