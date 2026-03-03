@@ -56,6 +56,20 @@ def test_data_received_pong():
     assert client._buffer == b""
 
 
+def test_play_ir():
+    from unittest.mock import MagicMock
+    client = DummyClient()
+    client._transport = MagicMock()
+    client.play_ir("test_signal")
+
+    expected_payload = json.dumps({
+        "command": "play_ir",
+        "signal_id": "test_signal"
+    }) + "\n"
+
+    client._transport.write.assert_called_once_with(expected_payload.encode())
+
+
 def test_data_received_invalid_json():
     client = DummyClient()
     client.data_received(b'invalid json\n')

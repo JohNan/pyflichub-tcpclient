@@ -4,8 +4,9 @@ const network = require('network');
 const net = require('net');
 const buttons = require('buttons');
 const flicapp = require('flicapp');
+const ir = require('ir');
 const EOL = "\n";
-const VERSION = "0.1.11";
+const VERSION = "0.1.12";
 
 // Configuration - start
 const HOST = "0.0.0.0";
@@ -162,6 +163,9 @@ net.createServer(function (socket) {
                     const parsed = JSON.parse(msg);
                     if (parsed.command === "virtualDeviceUpdateState") {
                         flicapp.virtualDeviceUpdateState(parsed.dimmableType, parsed.virtualDeviceId, parsed.values);
+                    }
+                    if (parsed.command === "play_ir") {
+                        ir.play(parsed.signal_id);
                     }
                 } catch (e) {
                     console.error("Failed to parse JSON: " + msg);
