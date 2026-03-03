@@ -273,7 +273,7 @@ class FlicHubTcpClient(asyncio.Protocol):
                 _LOGGER.debug(f"Virtual device update received: {event.meta_data['virtual_device_id']}")
 
         if self._event_callback is not None:
-            if event.event in ['actionMessage', 'virtualDeviceUpdate']:
+            if event.event in ['actionMessage', 'virtualDeviceUpdate', 'buttonAdded', 'buttonDeleted', 'buttonConnected', 'buttonDisconnected', 'buttonReady']:
                 self._event_callback(button, event)
             elif button is not None:
                 self._event_callback(button, event)
