@@ -111,6 +111,16 @@ class FlicHubTcpClient(asyncio.Protocol):
         else:
             _LOGGER.error("Connections seems to be closed.")
 
+    def play_ir(self, signal_id: str):
+        payload = json.dumps({
+            "command": ServerCommand.PLAY_IR,
+            "signal_id": signal_id
+        })
+        if self._transport is not None:
+            self._transport.write(f"{payload}\n".encode())
+        else:
+            _LOGGER.error("Connections seems to be closed.")
+
     async def get_buttons(self) -> list[FlicButton]:
         command: Command = await self._async_send_command_and_wait_for_data(ServerCommand.BUTTONS)
         return command.data if command is not None else []
