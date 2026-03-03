@@ -33,6 +33,18 @@ def test_data_received_partial_data():
     assert client.events_received[0].event == 'button'
     assert client.events_received[0].button == 'aa:bb:cc'
     assert client.events_received[0].action == 'click'
+    assert client.events_received[0].button_number is None
+    assert client._buffer == b""
+
+
+def test_data_received_button_number():
+    client = DummyClient()
+    client.data_received(b'{"event": "button", "button": "aa:bb:cc", "action": "single", "button_number": 0}\n')
+    assert len(client.events_received) == 1
+    assert client.events_received[0].event == 'button'
+    assert client.events_received[0].button == 'aa:bb:cc'
+    assert client.events_received[0].action == 'single'
+    assert client.events_received[0].button_number == 0
     assert client._buffer == b""
 
 
