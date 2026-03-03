@@ -65,44 +65,54 @@ net.createServer(function (socket) {
         write(payload)
     }
 
-    const buttonConnectedHandler = function (button) {
-        console.log('Button connected:' + button.bdaddr)
-        sendButtonPayload(button, {event: 'buttonConnected'})
+    const buttonConnectedHandler = function (obj) {
+        console.log('Button connected:' + obj.bdaddr)
+        sendButtonPayload({ bdaddr: obj.bdaddr }, {event: 'buttonConnected'})
     };
 
-    const buttonReadyHandler = function (button) {
-        console.log('Button ready:' + button.bdaddr)
-        sendButtonPayload(button, {event: 'buttonReady'})
+    const buttonReadyHandler = function (obj) {
+        console.log('Button ready:' + obj.bdaddr)
+        sendButtonPayload({ bdaddr: obj.bdaddr }, {event: 'buttonReady'})
     };
 
-    const buttonAddedHandler = function (button) {
-        console.log('Button added:' + button.bdaddr)
-        sendButtonPayload(button, {event: 'buttonAdded'})
+    const buttonAddedHandler = function (obj) {
+        console.log('Button added:' + obj.button.bdaddr)
+        sendButtonPayload({ bdaddr: obj.button.bdaddr }, {event: 'buttonAdded'})
     };
 
-    const buttonDownHandler = function (button) {
-        console.log('Button clicked:' + button.bdaddr + ' - down')
-        sendButtonPayload(button, {action: 'down'})
+    const buttonDeletedHandler = function (obj) {
+        console.log('Button deleted:' + obj.bdaddr)
+        sendButtonPayload({ bdaddr: obj.bdaddr }, {event: 'buttonDeleted'})
     };
 
-    const buttonUpHandler = function (button) {
-        console.log('Button clicked:' + button.bdaddr + ' - up')
-        sendButtonPayload(button, {action: 'up'})
+    const buttonDisconnectedHandler = function (obj) {
+        console.log('Button disconnected:' + obj.bdaddr)
+        sendButtonPayload({ bdaddr: obj.bdaddr }, {event: 'buttonDisconnected'})
+    };
+
+    const buttonDownHandler = function (obj) {
+        console.log('Button clicked:' + obj.bdaddr + ' - down')
+        sendButtonPayload({ bdaddr: obj.bdaddr }, {action: 'down'})
+    };
+
+    const buttonUpHandler = function (obj) {
+        console.log('Button clicked:' + obj.bdaddr + ' - up')
+        sendButtonPayload({ bdaddr: obj.bdaddr }, {action: 'up'})
     };
 	
-    const buttonIdle = function (button) {
-        console.log('Button ' + button.bdaddr + ' returning to idle')
-        sendButtonPayload(button, {action: 'idle'})
+    const buttonIdle = function (obj) {
+        console.log('Button ' + obj.bdaddr + ' returning to idle')
+        sendButtonPayload({ bdaddr: obj.bdaddr }, {action: 'idle'})
     }
 
-    const buttonSingleOrDoubleClickOrHoldHandler = function (button) {
-        const action = button.isSingleClick ? 'single' : button.isDoubleClick ? 'double' : 'hold';
-        console.log('Button clicked:' + button.bdaddr + ' - ' + action)
+    const buttonSingleOrDoubleClickOrHoldHandler = function (obj) {
+        const action = obj.isSingleClick ? 'single' : obj.isDoubleClick ? 'double' : 'hold';
+        console.log('Button clicked:' + obj.bdaddr + ' - ' + action)
 
-        buttonDownHandler(button);
-        setTimeout(buttonUpHandler, 50, button);
-        setTimeout(sendButtonPayload, 100, button, {action});
-        setTimeout(buttonIdle, 150, button);
+        buttonDownHandler(obj);
+        setTimeout(buttonUpHandler, 50, obj);
+        setTimeout(sendButtonPayload, 100, { bdaddr: obj.bdaddr }, {action});
+        setTimeout(buttonIdle, 150, obj);
     };
 
     const virtualDeviceUpdateHandler = function (metaData, values) {
@@ -133,6 +143,8 @@ net.createServer(function (socket) {
     buttons.on('buttonConnected', buttonConnectedHandler);
     buttons.on('buttonReady', buttonReadyHandler);
     buttons.on('buttonAdded', buttonAddedHandler);
+    buttons.on('buttonDeleted', buttonDeletedHandler);
+    buttons.on('buttonDisconnected', buttonDisconnectedHandler);
 
     flicapp.on('virtualDeviceUpdate', virtualDeviceUpdateHandler);
     flicapp.on('actionMessage', actionMessageHandler);
@@ -142,12 +154,12 @@ net.createServer(function (socket) {
     socket.on('end', function () {
         console.log('Client disconnected: ' + socket.remoteAddress);
 
-        buttons.removeListener('buttonUp', buttonUpHandler);
-        buttons.removeListener('buttonDown', buttonDownHandler);
         buttons.removeListener('buttonSingleOrDoubleClickOrHold', buttonSingleOrDoubleClickOrHoldHandler);
         buttons.removeListener('buttonConnected', buttonConnectedHandler);
         buttons.removeListener('buttonReady', buttonReadyHandler);
         buttons.removeListener('buttonAdded', buttonAddedHandler);
+        buttons.removeListener('buttonDeleted', buttonDeletedHandler);
+        buttons.removeListener('buttonDisconnected', buttonDisconnectedHandler);
         flicapp.removeListener('virtualDeviceUpdate', virtualDeviceUpdateHandler);
         flicapp.removeListener('actionMessage', actionMessageHandler);
 

@@ -235,14 +235,34 @@ class FlicHubTcpClient(asyncio.Protocol):
             if button:
                 _LOGGER.debug(f"Button {button.name} was {event.action}")
 
+        elif event.event == 'buttonAdded':
+            button = self._get_button(event.button)
+            if not button:
+                _LOGGER.debug(f"Button {event.button} added, fetching details")
+                self._loop.create_task(self.get_buttons())
+
+        elif event.event == 'buttonDeleted':
+            button = self._get_button(event.button)
+            if button:
+                _LOGGER.debug(f"Button {button.name} deleted")
+                self.buttons.remove(button)
+
         elif event.event == 'buttonConnected':
             button = self._get_button(event.button)
             if button:
+                button.connected = True
                 _LOGGER.debug(f"Button {button.name} is connected")
+
+        elif event.event == 'buttonDisconnected':
+            button = self._get_button(event.button)
+            if button:
+                button.connected = False
+                _LOGGER.debug(f"Button {button.name} is disconnected")
 
         elif event.event == 'buttonReady':
             button = self._get_button(event.button)
             if button:
+                button.ready = True
                 _LOGGER.debug(f"Button {button.name} is ready")
 
         elif event.event == 'actionMessage':
@@ -253,7 +273,7 @@ class FlicHubTcpClient(asyncio.Protocol):
                 _LOGGER.debug(f"Virtual device update received: {event.meta_data['virtual_device_id']}")
 
         if self._event_callback is not None:
-            if event.event in ['actionMessage', 'virtualDeviceUpdate']:
+            if event.event in ['actionMessage', 'virtualDeviceUpdate', 'buttonAdded', 'buttonDeleted', 'buttonConnected', 'buttonDisconnected', 'buttonReady']:
                 self._event_callback(button, event)
             elif button is not None:
                 self._event_callback(button, event)
