@@ -76,14 +76,86 @@ client.send_virtual_device_update_state(
 
 The following events are dispatched to your `event_callback` depending on the action or status change:
 
-*   `button`: Fired when a button interaction occurs (e.g. click, double-click, hold). Provides the action type in `event.action` ('down', 'up', 'single', 'double', 'hold', 'idle').
-*   `buttonAdded`: Fired when a new button is paired to the hub. The library will automatically try to fetch its details in the background. The `button` argument to the callback may be `None` initially.
-*   `buttonDeleted`: Fired when a button is unpaired/deleted.
-*   `buttonConnected`: Fired when a button makes a physical connection to the hub.
-*   `buttonDisconnected`: Fired when the connection to the button drops.
-*   `buttonReady`: Fired when the button connection has been fully verified and is ready for use.
-*   `actionMessage`: Fired when a Flic Hub Studio message action is executed (configured as a trigger in the Flic app).
-*   `virtualDeviceUpdate`: Fired when a Flic Twist rotates to control a virtual device. Contains values in `event.values` (like brightness, volume, etc.).
+### `button`
+Fired when a button interaction occurs (e.g. click, double-click, hold). Provides the action type in `event.action` ('down', 'up', 'single', 'double', 'hold', 'idle'). `button_number` is provided for multi-button devices like the Flic Twist.
+```json
+{
+  "event": "button",
+  "button": "80:E4:DA:7X:XX:XX",
+  "action": "single",
+  "button_number": 0
+}
+```
+
+### `buttonAdded`
+Fired when a new button is paired to the hub. The library will automatically try to fetch its details in the background. The `button` argument to the callback may be `None` initially.
+```json
+{
+  "event": "buttonAdded",
+  "button": "80:E4:DA:7X:XX:XX"
+}
+```
+
+### `buttonDeleted`
+Fired when a button is unpaired/deleted.
+```json
+{
+  "event": "buttonDeleted",
+  "button": "80:E4:DA:7X:XX:XX"
+}
+```
+
+### `buttonConnected`
+Fired when a button makes a physical connection to the hub.
+```json
+{
+  "event": "buttonConnected",
+  "button": "80:E4:DA:7X:XX:XX"
+}
+```
+
+### `buttonDisconnected`
+Fired when the connection to the button drops.
+```json
+{
+  "event": "buttonDisconnected",
+  "button": "80:E4:DA:7X:XX:XX"
+}
+```
+
+### `buttonReady`
+Fired when the button connection has been fully verified and is ready for use.
+```json
+{
+  "event": "buttonReady",
+  "button": "80:E4:DA:7X:XX:XX"
+}
+```
+
+### `actionMessage`
+Fired when a Flic Hub Studio message action is executed (configured as a trigger in the Flic app).
+```json
+{
+  "event": "actionMessage",
+  "action": "my_custom_message"
+}
+```
+
+### `virtualDeviceUpdate`
+Fired when a Flic Twist rotates to control a virtual device. Contains values in `event.values` (like brightness, volume, etc.).
+```json
+{
+  "event": "virtualDeviceUpdate",
+  "meta_data": {
+    "button_id": "90:88:a9:5b:12:89",
+    "virtual_device_id": "Virtual Light",
+    "dimmable_type": "Light"
+  },
+  "values": {
+    "brightness": 0.823853
+  }
+}
+```
 
 ## Client API
 
