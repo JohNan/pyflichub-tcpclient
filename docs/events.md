@@ -56,3 +56,44 @@ def my_event_callback(button, event):
 
         print(f"{button.name} updated {virtual_device} to brightness: {new_brightness}")
 ```
+
+### Sending Virtual Device Updates
+
+You can also send state updates back to the Flic Hub to synchronize the state of virtual devices (like setting the brightness of a virtual light).
+
+Use the `send_virtual_device_update_state` method on the `FlicHubTcpClient`:
+
+```python
+# Assuming `client` is your initialized FlicHubTcpClient instance
+client.send_virtual_device_update_state(
+    dimmable_type="Light",
+    virtual_device_id="Virtual Light",
+    values={"brightness": 0.5, "state": True}
+)
+```
+
+## Available Events
+
+The following events are dispatched to your `event_callback` depending on the action or status change:
+
+*   `button`: Fired when a button interaction occurs (e.g. click, double-click, hold). Provides the action type in `event.action` ('down', 'up', 'single', 'double', 'hold', 'idle').
+*   `buttonAdded`: Fired when a new button is paired to the hub. The library will automatically try to fetch its details in the background. The `button` argument to the callback may be `None` initially.
+*   `buttonDeleted`: Fired when a button is unpaired/deleted.
+*   `buttonConnected`: Fired when a button makes a physical connection to the hub.
+*   `buttonDisconnected`: Fired when the connection to the button drops.
+*   `buttonReady`: Fired when the button connection has been fully verified and is ready for use.
+*   `actionMessage`: Fired when a Flic Hub Studio message action is executed (configured as a trigger in the Flic app).
+*   `virtualDeviceUpdate`: Fired when a Flic Twist rotates to control a virtual device. Contains values in `event.values` (like brightness, volume, etc.).
+
+## Client API
+
+The `FlicHubTcpClient` provides the following main methods for interacting with the Flic Hub:
+
+*   `async_connect()`: Connect to the Flic Hub TCP server asynchronously.
+*   `disconnect()`: Disconnect from the Flic Hub TCP server.
+*   `get_buttons() -> list[FlicButton]`: Retrieve the list of all currently paired buttons from the Hub.
+*   `get_server_info() -> ServerInfo | None`: Retrieve the current server information and version from the Flic Hub.
+*   `get_hubinfo() -> FlicHubInfo | None`: Retrieve the networking and general information about the Flic Hub.
+*   `async_check_for_updates()`: Checks if there is a newer version of the Python library or the Flic Hub `tcpserver.js` script.
+*   `play_ir(signal_id: str)`: Replays an infrared signal saved on the Flic Hub using the `ir` module.
+*   `send_virtual_device_update_state(dimmable_type: str, virtual_device_id: str, values: dict)`: Update the state of a virtual device (e.g., synchronizing brightness for a Flic Twist).
