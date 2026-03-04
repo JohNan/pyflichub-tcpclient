@@ -56,11 +56,14 @@ net.createServer(function (socket) {
 
     console.log("Connection from " + socket.remoteAddress);
 
-    const sendButtonPayload = function (button, {event=EVENT_BUTTON, action=''}) {
+    const sendButtonPayload = function (button, {event=EVENT_BUTTON, action='', button_number=undefined}) {
         const payload = {
             'event': event,
             'button': button.bdaddr,
             'action': action
+        }
+        if (button_number !== undefined) {
+            payload['button_number'] = button_number;
         }
         write(payload)
     }
@@ -92,17 +95,17 @@ net.createServer(function (socket) {
 
     const buttonDownHandler = function (obj) {
         console.log('Button clicked:' + obj.bdaddr + ' - down')
-        sendButtonPayload({ bdaddr: obj.bdaddr }, {action: 'down'})
+        sendButtonPayload({ bdaddr: obj.bdaddr }, {action: 'down', button_number: obj.buttonNumber})
     };
 
     const buttonUpHandler = function (obj) {
         console.log('Button clicked:' + obj.bdaddr + ' - up')
-        sendButtonPayload({ bdaddr: obj.bdaddr }, {action: 'up'})
+        sendButtonPayload({ bdaddr: obj.bdaddr }, {action: 'up', button_number: obj.buttonNumber})
     };
 	
     const buttonIdle = function (obj) {
         console.log('Button ' + obj.bdaddr + ' returning to idle')
-        sendButtonPayload({ bdaddr: obj.bdaddr }, {action: 'idle'})
+        sendButtonPayload({ bdaddr: obj.bdaddr }, {action: 'idle', button_number: obj.buttonNumber})
     }
 
     const buttonSingleOrDoubleClickOrHoldHandler = function (obj) {
@@ -111,7 +114,7 @@ net.createServer(function (socket) {
 
         buttonDownHandler(obj);
         setTimeout(buttonUpHandler, 50, obj);
-        setTimeout(sendButtonPayload, 100, { bdaddr: obj.bdaddr }, {action});
+        setTimeout(sendButtonPayload, 100, { bdaddr: obj.bdaddr }, {action, button_number: obj.buttonNumber});
         setTimeout(buttonIdle, 150, obj);
     };
 
