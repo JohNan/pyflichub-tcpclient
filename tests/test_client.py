@@ -123,6 +123,30 @@ def test_button_events_handling():
     assert events_received[-1][1].event == "buttonDeleted"
 
 
+def test_virtual_device_update_event():
+    from pyflichub.button import FlicButton
+
+    events_received = []
+
+    def mock_event_callback(button, event):
+        events_received.append((button, event))
+
+    client = FlicHubTcpClient('127.0.0.1', 8124, asyncio.new_event_loop(), event_callback=mock_event_callback)
+
+    btn1 = FlicButton(bdaddr="90:88:a9:5b:12:89", serial_number="sn", color="black", name="test_twist",
+                      active_disconnect=False, connected=True, ready=True, battery_status=100,
+                      uuid="uuid", flic_version=2, firmware_version=1, key="key", passive_mode=False)
+    client.buttons = [btn1]
+
+    # Test virtualDeviceUpdate
+    client.data_received(b'{"event":"virtualDeviceUpdate","meta_data":{"button_id":"90:88:a9:5b:12:89","virtual_device_id":"Virtual Light","dimmable_type":"Light"},"values":{"brightness":0.823853}}\n')
+    assert len(events_received) == 1
+    assert events_received[-1][0] == btn1
+    assert events_received[-1][1].event == "virtualDeviceUpdate"
+    assert events_received[-1][1].meta_data["virtual_device_id"] == "Virtual Light"
+    assert events_received[-1][1].values["brightness"] == 0.823853
+
+
 def test_play_ir():
     from unittest.mock import MagicMock
     client = DummyClient()
