@@ -17,12 +17,18 @@ class RateDetentController:
     Handles converting raw positional values to smooth, variable-speed detent increments
     with features like sticky neutral, debounce, and speed tiers.
     """
-    def __init__(self, cfg: Optional[Dict[str, Any]] = None, on_change_callback: Optional[Callable[[Optional[int]], None]] = None):
+    def __init__(
+        self,
+        cfg: Optional[Dict[str, Any]] = None,
+        on_change_callback: Optional[Callable[[Optional[int]], None]] = None,
+        loop: Optional[asyncio.AbstractEventLoop] = None
+    ):
         if cfg is None:
             cfg = {}
 
         self.cfg = cfg
         self.on_change_callback = on_change_callback
+        self._loop = loop
 
         self.tick_ms = self.cfg.get("tickMs", 333)
 
@@ -188,7 +194,14 @@ class RateDetentController:
             return None
 
         if self._timer_task is None and self._running:
-            self._timer_task = asyncio.create_task(self._tick_loop())
+            try:
+                loop = asyncio.get_running_loop()
+                self._timer_task = loop.create_task(self._tick_loop())
+            except RuntimeError:
+                if self._loop is not None:
+                    self._timer_task = asyncio.run_coroutine_threadsafe(self._tick_loop(), self._loop)
+                else:
+                    self._timer_task = asyncio.get_event_loop().create_task(self._tick_loop())
 
         if self.actual_out_pct is None:
             self.actual_out_pct = self.min_out_pct
