@@ -64,5 +64,29 @@ The following events are explicitly dispatched to the `event_callback` provided 
 - `actionMessage`: Fired when a Flic Hub Studio message action is executed (configured as a trigger in the Flic app).
 - `virtualDeviceUpdate`: Fired when a Flic Twist rotates to control a virtual device. Contains values in `event.values` (like brightness, volume, etc.).
 
+### Handling Twist Jitter/Sensitivity
+
+When working with virtual device outputs mapping to Flic Twist, you may find the outputs to be twitchy or experience jitter. To resolve this, you can utilize the provided `RateDetentController` utility. This allows variable-speed adjusters with features like sticky neutral and debounce to smooth out inputs.
+
+```python
+from pyflichub.twist_controller import RateDetentController
+
+# Inside your application...
+def on_volume_change(new_volume_pct):
+    print(f"Setting volume to: {new_volume_pct}%")
+
+# Create a controller once for the button
+volume_controller = RateDetentController(
+    cfg={"minOutPct": 0, "maxOutPct": 100},
+    on_change_callback=on_volume_change
+)
+
+def event_callback(button: FlicButton, event: Event):
+    if event.event == 'virtualDeviceUpdate':
+        # Push raw values through the controller
+        # Make sure you only pass value updates matching the button and device
+        volume_controller.update_raw(event.values['volume'] * 100)
+```
+
 ### Disclaimer
 This python library was not made by Flic. It is not official, not developed, and not supported by Flic.
