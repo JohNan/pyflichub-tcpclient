@@ -75,6 +75,10 @@ class RateDetentController:
         self._running = True
         self._timer_task = None
 
+        self.timeout_ms = self.cfg.get("timeoutMs", 500)
+        self._last_raw_time = time.time() * 1000
+        self._last_raw_in_pct = None
+
     def _desired_speed(self, abs_off: float) -> int:
         if abs_off <= self.tier1_max_off:
             return 1
@@ -193,6 +197,9 @@ class RateDetentController:
         if not isinstance(raw_in_pct, (int, float)):
             return None
 
+        self._last_raw_time = time.time() * 1000
+        self._last_raw_in_pct = raw_in_pct
+
         if self._timer_task is None and self._running:
             try:
                 loop = asyncio.get_running_loop()
@@ -241,6 +248,17 @@ class RateDetentController:
     def _tick(self):
         if self.actual_out_pct is None:
             return
+
+        now = time.time() * 1000
+        if self.timeout_ms and (now - self._last_raw_time) > self.timeout_ms:
+            if self.current_dir != 0 or self.current_speed != 0:
+                self.current_dir = 0
+                self.current_speed = 0
+                if self._last_raw_in_pct is not None:
+                    self.center_in_pct = self._last_raw_in_pct
+                self.neutral_latched = True
+                self.speed_latched = 0
+
         if self.current_dir == 0 or self.current_speed == 0:
             return
 
