@@ -157,6 +157,25 @@ Fired when a Flic Twist rotates to control a virtual device. Contains values in 
 }
 ```
 
+### `irResult`
+Fired after an infrared signal is requested to be played via `play_ir` or `play_ir_raw`. The action will be either `'success'` or `'failed'`. If failed, `meta_data` will contain an `'error'` message.
+```json
+{
+  "event": "irResult",
+  "action": "success"
+}
+```
+Or in case of an error:
+```json
+{
+  "event": "irResult",
+  "action": "failed",
+  "meta_data": {
+    "error": "Error: could not play IR signal"
+  }
+}
+```
+
 ## Client API
 
 The `FlicHubTcpClient` provides the following main methods for interacting with the Flic Hub:

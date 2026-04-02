@@ -297,6 +297,7 @@ class FlicHubTcpClient(asyncio.Protocol):
                 "buttonConnected",
                 "buttonDisconnected",
                 "buttonReady",
+                "irResult",
             ]:
                 self._event_callback(button, event)
             elif button is not None:
