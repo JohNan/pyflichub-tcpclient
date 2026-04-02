@@ -179,8 +179,23 @@ net.createServer(function (socket) {
                     if (parsed.command === "virtualDeviceUpdateState") {
                         flicapp.virtualDeviceUpdateState(parsed.dimmableType, parsed.virtualDeviceId, parsed.values);
                     }
+                    const irCallback = function(error) {
+                        if (error) {
+                            console.log("IR Play Error: " + error);
+                            write({'event': 'irResult', 'action': 'failed', 'meta_data': {'error': error.toString()}});
+                        } else {
+                            write({'event': 'irResult', 'action': 'success'});
+                        }
+                    };
+
                     if (parsed.command === "play_ir") {
-                        ir.play(parsed.signal_id);
+                        ir.play(parsed.signal_id, irCallback);
+                    }
+                    if (parsed.command === "play_ir_raw") {
+                        if (parsed.arr && Array.isArray(parsed.arr)) {
+                            var timings = new Uint32Array(parsed.arr);
+                            ir.play(timings, irCallback);
+                        }
                     }
                 } catch (e) {
                     console.error("Failed to parse JSON: " + msg);

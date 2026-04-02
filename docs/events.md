@@ -157,6 +157,25 @@ Fired when a Flic Twist rotates to control a virtual device. Contains values in 
 }
 ```
 
+### `irResult`
+Fired after an infrared signal is requested to be played via `play_ir` or `play_ir_raw`. The action will be either `'success'` or `'failed'`. If failed, `meta_data` will contain an `'error'` message.
+```json
+{
+  "event": "irResult",
+  "action": "success"
+}
+```
+Or in case of an error:
+```json
+{
+  "event": "irResult",
+  "action": "failed",
+  "meta_data": {
+    "error": "Error: could not play IR signal"
+  }
+}
+```
+
 ## Client API
 
 The `FlicHubTcpClient` provides the following main methods for interacting with the Flic Hub:
@@ -168,4 +187,5 @@ The `FlicHubTcpClient` provides the following main methods for interacting with 
 *   `get_hubinfo() -> FlicHubInfo | None`: Retrieve the networking and general information about the Flic Hub.
 *   `async_check_for_updates()`: Checks if there is a newer version of the Python library or the Flic Hub `tcpserver.js` script.
 *   `play_ir(signal_id: str)`: Replays an infrared signal saved on the Flic Hub using the `ir` module.
+*   `play_ir_raw(arr: list[int])`: Plays a raw IR signal provided as an array of timings, starting with the carrier frequency in Hz.
 *   `send_virtual_device_update_state(dimmable_type: str, virtual_device_id: str, values: dict)`: Update the state of a virtual device (e.g., synchronizing brightness for a Flic Twist).

@@ -6,3 +6,4 @@ class ServerCommand(StrEnum):
     SERVER_INFO = "server"
     HUB_INFO = "network"
     PLAY_IR = "play_ir"
+    PLAY_IR_RAW = "play_ir_raw"

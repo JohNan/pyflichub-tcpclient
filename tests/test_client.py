@@ -11,7 +11,7 @@ logging.basicConfig(level=logging.DEBUG)
 
 class DummyClient(FlicHubTcpClient):
     def __init__(self):
-        super().__init__('127.0.0.1', 8124, asyncio.new_event_loop())
+        super().__init__("127.0.0.1", 8124, asyncio.new_event_loop())
         self.events_received = []
         self.commands_received = []
 
@@ -28,11 +28,11 @@ def test_data_received_partial_data():
     assert len(client.events_received) == 0
     assert client._buffer == b'{"event": "button", "button": "aa:bb:cc", "action": "click"}'
 
-    client.data_received(b'\n')
+    client.data_received(b"\n")
     assert len(client.events_received) == 1
-    assert client.events_received[0].event == 'button'
-    assert client.events_received[0].button == 'aa:bb:cc'
-    assert client.events_received[0].action == 'click'
+    assert client.events_received[0].event == "button"
+    assert client.events_received[0].button == "aa:bb:cc"
+    assert client.events_received[0].action == "click"
     assert client.events_received[0].button_number is None
     assert client._buffer == b""
 
@@ -41,9 +41,9 @@ def test_data_received_button_number():
     client = DummyClient()
     client.data_received(b'{"event": "button", "button": "aa:bb:cc", "action": "single", "button_number": 0}\n')
     assert len(client.events_received) == 1
-    assert client.events_received[0].event == 'button'
-    assert client.events_received[0].button == 'aa:bb:cc'
-    assert client.events_received[0].action == 'single'
+    assert client.events_received[0].event == "button"
+    assert client.events_received[0].button == "aa:bb:cc"
+    assert client.events_received[0].action == "single"
     assert client.events_received[0].button_number == 0
     assert client._buffer == b""
 
@@ -55,17 +55,18 @@ def test_data_received_multiple_messages():
     )
     assert len(client.events_received) == 1
     assert len(client.commands_received) == 1
-    assert client.events_received[0].event == 'button'
-    assert client.commands_received[0].command == 'serverInfo'
+    assert client.events_received[0].event == "button"
+    assert client.commands_received[0].command == "serverInfo"
     assert client._buffer == b""
 
 
 def test_data_received_pong():
     client = DummyClient()
-    client.data_received(b'pong\n')
+    client.data_received(b"pong\n")
     assert len(client.events_received) == 0
     assert len(client.commands_received) == 0
     assert client._buffer == b""
+
 
 def test_button_events_handling():
     from pyflichub.button import FlicButton
@@ -75,21 +76,33 @@ def test_button_events_handling():
     def mock_event_callback(button, event):
         events_received.append((button, event))
 
-    client = FlicHubTcpClient('127.0.0.1', 8124, asyncio.new_event_loop(), event_callback=mock_event_callback)
+    client = FlicHubTcpClient("127.0.0.1", 8124, asyncio.new_event_loop(), event_callback=mock_event_callback)
 
     # Mock get_buttons so it doesn't try to send over TCP
     async def mock_get_buttons():
         return []
 
     def mock_create_task(coro):
-        coro.close() # prevent coroutine was never awaited warning
+        coro.close()  # prevent coroutine was never awaited warning
 
     client.get_buttons = mock_get_buttons
     client._loop.create_task = mock_create_task
 
-    btn1 = FlicButton(bdaddr="aa:bb:cc", serial_number="sn", color="black", name="test1",
-                      active_disconnect=False, connected=False, ready=False, battery_status=100,
-                      uuid="uuid", flic_version=2, firmware_version=1, key="key", passive_mode=False)
+    btn1 = FlicButton(
+        bdaddr="aa:bb:cc",
+        serial_number="sn",
+        color="black",
+        name="test1",
+        active_disconnect=False,
+        connected=False,
+        ready=False,
+        battery_status=100,
+        uuid="uuid",
+        flic_version=2,
+        firmware_version=1,
+        key="key",
+        passive_mode=False,
+    )
     client.buttons = [btn1]
 
     # Test buttonAdded
@@ -131,15 +144,29 @@ def test_virtual_device_update_event():
     def mock_event_callback(button, event):
         events_received.append((button, event))
 
-    client = FlicHubTcpClient('127.0.0.1', 8124, asyncio.new_event_loop(), event_callback=mock_event_callback)
+    client = FlicHubTcpClient("127.0.0.1", 8124, asyncio.new_event_loop(), event_callback=mock_event_callback)
 
-    btn1 = FlicButton(bdaddr="90:88:a9:5b:12:89", serial_number="sn", color="black", name="test_twist",
-                      active_disconnect=False, connected=True, ready=True, battery_status=100,
-                      uuid="uuid", flic_version=2, firmware_version=1, key="key", passive_mode=False)
+    btn1 = FlicButton(
+        bdaddr="90:88:a9:5b:12:89",
+        serial_number="sn",
+        color="black",
+        name="test_twist",
+        active_disconnect=False,
+        connected=True,
+        ready=True,
+        battery_status=100,
+        uuid="uuid",
+        flic_version=2,
+        firmware_version=1,
+        key="key",
+        passive_mode=False,
+    )
     client.buttons = [btn1]
 
     # Test virtualDeviceUpdate
-    client.data_received(b'{"event":"virtualDeviceUpdate","meta_data":{"button_id":"90:88:a9:5b:12:89","virtual_device_id":"Virtual Light","dimmable_type":"Light"},"values":{"brightness":0.823853}}\n')
+    client.data_received(
+        b'{"event":"virtualDeviceUpdate","meta_data":{"button_id":"90:88:a9:5b:12:89","virtual_device_id":"Virtual Light","dimmable_type":"Light"},"values":{"brightness":0.823853}}\n'
+    )
     assert len(events_received) == 1
     assert events_received[-1][0] == btn1
     assert events_received[-1][1].event == "virtualDeviceUpdate"
@@ -149,21 +176,33 @@ def test_virtual_device_update_event():
 
 def test_play_ir():
     from unittest.mock import MagicMock
+
     client = DummyClient()
     client._transport = MagicMock()
     client.play_ir("test_signal")
 
-    expected_payload = json.dumps({
-        "command": "play_ir",
-        "signal_id": "test_signal"
-    }) + "\n"
+    expected_payload = json.dumps({"command": "play_ir", "signal_id": "test_signal"}) + "\n"
+
+    client._transport.write.assert_called_once_with(expected_payload.encode())
+
+
+def test_play_ir_raw():
+    from unittest.mock import MagicMock
+
+    client = DummyClient()
+    client._transport = MagicMock()
+
+    test_arr = [38000, 9000, 4500, 560, 560]
+    client.play_ir_raw(test_arr)
+
+    expected_payload = json.dumps({"command": "play_ir_raw", "arr": test_arr}) + "\n"
 
     client._transport.write.assert_called_once_with(expected_payload.encode())
 
 
 def test_data_received_invalid_json():
     client = DummyClient()
-    client.data_received(b'invalid json\n')
+    client.data_received(b"invalid json\n")
     assert len(client.events_received) == 0
     assert len(client.commands_received) == 0
     assert client._buffer == b""
