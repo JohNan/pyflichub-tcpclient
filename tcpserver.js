@@ -182,6 +182,16 @@ net.createServer(function (socket) {
                     if (parsed.command === "play_ir") {
                         ir.play(parsed.signal_id);
                     }
+                    if (parsed.command === "play_ir_raw") {
+                        if (parsed.arr && Array.isArray(parsed.arr)) {
+                            var timings = new Uint32Array(parsed.arr);
+                            ir.play(timings, function(error) {
+                                if (error) {
+                                    console.log("IR Play Error: " + error);
+                                }
+                            });
+                        }
+                    }
                 } catch (e) {
                     console.error("Failed to parse JSON: " + msg);
                 }

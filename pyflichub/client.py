@@ -38,7 +38,7 @@ class FlicHubTcpClient(asyncio.Protocol):
     network: FlicHubInfo
 
     def __init__(self, ip, port, loop, timeout=1.0, reconnect_timeout=10.0, event_callback=None, command_callback=None):
-        self._data_ready: dict[str: Union[asyncio.Event, None]] = {}
+        self._data_ready: dict[str : Union[asyncio.Event, None]] = {}
         self._transport = None
         self._command_callback = command_callback
         self._event_callback = event_callback
@@ -62,8 +62,7 @@ class FlicHubTcpClient(asyncio.Protocol):
                 _LOGGER.info("Trying to connect to %s", self._server_address)
                 try:
                     await asyncio.wait_for(
-                        self._loop.create_connection(lambda: self, *self._server_address),
-                        self._reconnect_timeout
+                        self._loop.create_connection(lambda: self, *self._server_address), self._reconnect_timeout
                     )
                     self._tcp_check_timer = time.time()
                     self._tcp_disconnect_timer = time.time()
@@ -100,26 +99,37 @@ class FlicHubTcpClient(asyncio.Protocol):
         return self._async_send_command(cmd)
 
     def send_virtual_device_update_state(self, dimmable_type: str, virtual_device_id: str, values: dict):
-        payload = json.dumps({
-            "command": "virtualDeviceUpdateState",
-            "dimmableType": dimmable_type,
-            "virtualDeviceId": virtual_device_id,
-            "values": values
-        })
+        payload = json.dumps(
+            {
+                "command": "virtualDeviceUpdateState",
+                "dimmableType": dimmable_type,
+                "virtualDeviceId": virtual_device_id,
+                "values": values,
+            }
+        )
         if self._transport is not None:
             self._transport.write(f"{payload}\n".encode())
         else:
             _LOGGER.error("Connections seems to be closed.")
 
     def play_ir(self, signal_id: str):
-        payload = json.dumps({
-            "command": ServerCommand.PLAY_IR,
-            "signal_id": signal_id
-        })
+        payload = json.dumps({"command": ServerCommand.PLAY_IR, "signal_id": signal_id})
         if self._transport is not None:
             self._transport.write(f"{payload}\n".encode())
         else:
             _LOGGER.error("Connections seems to be closed.")
+
+    def play_ir_raw(self, arr: list[int]):
+        """
+        Plays a raw IR signal.
+        The first element of the array should contain a carrier frequency in Hz (usually 38000 Hz).
+        The following elements indicate in microseconds how long each pulse should be active or silent, alternating.
+        """
+        payload = json.dumps({"command": ServerCommand.PLAY_IR_RAW, "arr": arr})
+        if self._transport is not None:
+            self._transport.write(f"{payload}\n".encode())
+        else:
+            _LOGGER.error("Connection seems to be closed.")
 
     async def get_buttons(self) -> list[FlicButton]:
         command: Command = await self._async_send_command_and_wait_for_data(ServerCommand.BUTTONS)
@@ -149,9 +159,13 @@ class FlicHubTcpClient(asyncio.Protocol):
         # Check Hub version
         server_info = await self.get_server_info()
         if server_info and server_info.version:
-            update_available, latest_version = await self._loop.run_in_executor(None, check_for_updates, server_info.version)
+            update_available, latest_version = await self._loop.run_in_executor(
+                None, check_for_updates, server_info.version
+            )
             if update_available:
-                print(f"A new version of the Flic Hub script is available: {latest_version} (current: {server_info.version})")
+                print(
+                    f"A new version of the Flic Hub script is available: {latest_version} (current: {server_info.version})"
+                )
                 print(f"Please update the code in your Flic Hub: {UPDATE_LINK}")
 
     def _async_send_command(self, cmd: ServerCommand):
@@ -184,8 +198,8 @@ class FlicHubTcpClient(asyncio.Protocol):
 
     def data_received(self, data):
         self._buffer += data
-               
-        _LOGGER.debug('Data received: {!r}'.format(data.decode('utf-8', errors='replace')))
+
+        _LOGGER.debug("Data received: {!r}".format(data.decode("utf-8", errors="replace")))
 
         while b"\n" in self._buffer:
             line, self._buffer = self._buffer.split(b"\n", 1)
@@ -193,18 +207,18 @@ class FlicHubTcpClient(asyncio.Protocol):
             if not decoded_line:
                 continue
 
-            if decoded_line == 'pong':
+            if decoded_line == "pong":
                 pass
 
             try:
                 msg = json.loads(decoded_line, cls=_JSONDecoder)
-                if 'event' in msg:
+                if "event" in msg:
                     self._handle_event(Event(**msg))
-                if 'command' in msg:
+                if "command" in msg:
                     self._handle_command(Command(**msg))
             except Exception as e:
                 _LOGGER.warning(e, exc_info=True)
-                _LOGGER.warning('Unable to decode received data')
+                _LOGGER.warning("Unable to decode received data")
 
     def connection_lost(self, exc):
         _LOGGER.info("Connection lost")
@@ -230,52 +244,60 @@ class FlicHubTcpClient(asyncio.Protocol):
 
     def _handle_event(self, event: Event):
         button = None
-        if event.event == 'button':
+        if event.event == "button":
             button = self._get_button(event.button)
             if button:
                 _LOGGER.debug(f"Button {button.name} was {event.action}")
 
-        elif event.event == 'buttonAdded':
+        elif event.event == "buttonAdded":
             button = self._get_button(event.button)
             if not button:
                 _LOGGER.debug(f"Button {event.button} added, fetching details")
                 self._loop.create_task(self.get_buttons())
 
-        elif event.event == 'buttonDeleted':
+        elif event.event == "buttonDeleted":
             button = self._get_button(event.button)
             if button:
                 _LOGGER.debug(f"Button {button.name} deleted")
                 self.buttons.remove(button)
 
-        elif event.event == 'buttonConnected':
+        elif event.event == "buttonConnected":
             button = self._get_button(event.button)
             if button:
                 button.connected = True
                 _LOGGER.debug(f"Button {button.name} is connected")
 
-        elif event.event == 'buttonDisconnected':
+        elif event.event == "buttonDisconnected":
             button = self._get_button(event.button)
             if button:
                 button.connected = False
                 _LOGGER.debug(f"Button {button.name} is disconnected")
 
-        elif event.event == 'buttonReady':
+        elif event.event == "buttonReady":
             button = self._get_button(event.button)
             if button:
                 button.ready = True
                 _LOGGER.debug(f"Button {button.name} is ready")
 
-        elif event.event == 'actionMessage':
+        elif event.event == "actionMessage":
             _LOGGER.debug(f"Action message received: {event.action}")
 
-        elif event.event == 'virtualDeviceUpdate':
-            if event.meta_data and 'virtual_device_id' in event.meta_data:
+        elif event.event == "virtualDeviceUpdate":
+            if event.meta_data and "virtual_device_id" in event.meta_data:
                 _LOGGER.debug(f"Virtual device update received: {event.meta_data['virtual_device_id']}")
-            if event.meta_data and 'button_id' in event.meta_data:
-                button = self._get_button(event.meta_data['button_id'])
+            if event.meta_data and "button_id" in event.meta_data:
+                button = self._get_button(event.meta_data["button_id"])
 
         if self._event_callback is not None:
-            if event.event in ['actionMessage', 'virtualDeviceUpdate', 'buttonAdded', 'buttonDeleted', 'buttonConnected', 'buttonDisconnected', 'buttonReady']:
+            if event.event in [
+                "actionMessage",
+                "virtualDeviceUpdate",
+                "buttonAdded",
+                "buttonDeleted",
+                "buttonConnected",
+                "buttonDisconnected",
+                "buttonReady",
+            ]:
                 self._event_callback(button, event)
             elif button is not None:
                 self._event_callback(button, event)
@@ -298,13 +320,12 @@ class FlicHubTcpClient(asyncio.Protocol):
 
 class _JSONDecoder(json.JSONDecoder):
     def __init__(self, *args, **kwargs):
-        json.JSONDecoder.__init__(
-            self, object_hook=self.object_hook, *args, **kwargs)
+        json.JSONDecoder.__init__(self, object_hook=self.object_hook, *args, **kwargs)
 
     def object_hook(self, obj):
         ret = {}
         for key, value in obj.items():
-            if key in {'batteryTimestamp'}:
+            if key in {"batteryTimestamp"}:
                 ret[key] = datetime.fromtimestamp(value / 1000)
             else:
                 ret[key] = value
