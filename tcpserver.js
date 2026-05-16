@@ -101,6 +101,7 @@ net.createServer(function (socket) {
     const buttonUpHandler = function (obj) {
         console.log('Button clicked:' + obj.bdaddr + ' - up')
         sendButtonPayload({ bdaddr: obj.bdaddr }, {action: 'up', button_number: obj.buttonNumber})
+        setTimeout(buttonIdle, 150, obj);
     };
 	
     const buttonIdle = function (obj) {
@@ -112,10 +113,7 @@ net.createServer(function (socket) {
         const action = obj.isSingleClick ? 'single' : obj.isDoubleClick ? 'double' : 'hold';
         console.log('Button clicked:' + obj.bdaddr + ' - ' + action)
 
-        buttonDownHandler(obj);
-        setTimeout(buttonUpHandler, 50, obj);
-        setTimeout(sendButtonPayload, 100, { bdaddr: obj.bdaddr }, {action, button_number: obj.buttonNumber});
-        setTimeout(buttonIdle, 150, obj);
+        sendButtonPayload({ bdaddr: obj.bdaddr }, {action, button_number: obj.buttonNumber});
     };
 
     const virtualDeviceUpdateHandler = function (metaData, values) {
@@ -142,6 +140,8 @@ net.createServer(function (socket) {
         write(payload);
     };
 
+    buttons.on('buttonDown', buttonDownHandler);
+    buttons.on('buttonUp', buttonUpHandler);
     buttons.on('buttonSingleOrDoubleClickOrHold', buttonSingleOrDoubleClickOrHoldHandler);
     buttons.on('buttonConnected', buttonConnectedHandler);
     buttons.on('buttonReady', buttonReadyHandler);
@@ -157,6 +157,8 @@ net.createServer(function (socket) {
     socket.on('end', function () {
         console.log('Client disconnected: ' + socket.remoteAddress);
 
+        buttons.removeListener('buttonDown', buttonDownHandler);
+        buttons.removeListener('buttonUp', buttonUpHandler);
         buttons.removeListener('buttonSingleOrDoubleClickOrHold', buttonSingleOrDoubleClickOrHoldHandler);
         buttons.removeListener('buttonConnected', buttonConnectedHandler);
         buttons.removeListener('buttonReady', buttonReadyHandler);
