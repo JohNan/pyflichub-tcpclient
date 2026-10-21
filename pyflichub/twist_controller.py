@@ -33,8 +33,8 @@ class RateDetentController:
         self.tick_ms = self.cfg.get("tickMs", 333)
 
         # Neutral hysteresis
-        self.deadband_enter = self.cfg.get("deadbandEnter", 5)
-        self.deadband_exit = self.cfg.get("deadbandExit", 9)
+        self.deadband_enter = self.cfg.get("deadbandEnter", 2)
+        self.deadband_exit = self.cfg.get("deadbandExit", 5)
 
         # Speed tiers
         self.tier1_max_off = self.cfg.get("tier1MaxOff", 25)
