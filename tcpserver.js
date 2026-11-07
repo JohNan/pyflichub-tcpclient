@@ -6,7 +6,7 @@ const buttons = require('buttons');
 const flicapp = require('flicapp');
 const ir = require('ir');
 const EOL = "\n";
-const VERSION = "0.1.19";
+const VERSION = "0.1.20";
 
 // Configuration - start
 const HOST = "0.0.0.0";
