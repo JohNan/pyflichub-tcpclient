@@ -206,3 +206,31 @@ def test_data_received_invalid_json():
     assert len(client.events_received) == 0
     assert len(client.commands_received) == 0
     assert client._buffer == b""
+
+
+@pytest.mark.parametrize("method", ["get_hubinfo", "get_server_info"])
+def test_info_getters_return_none_on_timeout(method):
+    """A data-ready timeout must yield None instead of raising AttributeError."""
+    from unittest.mock import AsyncMock
+
+    client = DummyClient()
+    client._async_send_command_and_wait_for_data = AsyncMock(return_value=None)
+    try:
+        result = client._loop.run_until_complete(getattr(client, method)())
+    finally:
+        client._loop.close()
+
+    assert result is None
+
+
+def test_get_buttons_returns_empty_list_on_timeout():
+    from unittest.mock import AsyncMock
+
+    client = DummyClient()
+    client._async_send_command_and_wait_for_data = AsyncMock(return_value=None)
+    try:
+        result = client._loop.run_until_complete(client.get_buttons())
+    finally:
+        client._loop.close()
+
+    assert result == []

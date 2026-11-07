@@ -137,11 +137,11 @@ class FlicHubTcpClient(asyncio.Protocol):
 
     async def get_server_info(self) -> ServerInfo | None:
         command: Command = await self._async_send_command_and_wait_for_data(ServerCommand.SERVER_INFO)
-        return command.data
+        return command.data if command is not None else None
 
     async def get_hubinfo(self) -> FlicHubInfo | None:
         command: Command = await self._async_send_command_and_wait_for_data(ServerCommand.HUB_INFO)
-        return command.data
+        return command.data if command is not None else None
 
     async def async_check_for_updates(self):
         try:
